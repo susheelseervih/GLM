@@ -1,0 +1,3626 @@
+import React, { useState, useEffect } from 'react';
+import { AlertCircle, TrendingUp, Users, DollarSign, Package, LogOut, Eye, EyeOff, Search, Filter, Calendar, FileText, Bell } from 'lucide-react';
+
+const GoldLoanManagementSystem = () => {
+  const [currentView, setCurrentView] = useState('login');
+  const [isLoggedIn, setIsLoggedIn] = useState(false);
+  const [isAnalyticsAuthenticated, setIsAnalyticsAuthenticated] = useState(false);
+  const [goldPrice, setGoldPrice] = useState({ '22k': 5850, '24k': 6350 });
+  const [silverPrice, setSilverPrice] = useState(72);
+  
+  // Store user profile data (in production, this would come from database)
+  const [userProfile, setUserProfile] = useState({
+    name: '',
+    email: '',
+    phone: '',
+    address: '',
+    aadhaar: '',
+    userId: '',
+    bankerName: ''
+  });
+  
+  // Dashboard visibility toggles
+  const [visibility, setVisibility] = useState({
+    totalLoans: true,
+    pendingAmount: true,
+    interestCollected: true,
+    totalCustomers: true
+  });
+  
+  // Dashboard filters
+  const [dashboardFilter, setDashboardFilter] = useState('30days');
+  const [loanTypeFilter, setLoanTypeFilter] = useState('all'); // all, current, closed
+  
+  // Search functionality
+  const [searchQuery, setSearchQuery] = useState('');
+  const [searchFilter, setSearchFilter] = useState('customerId'); // customerId, mobile, name, date, taluk, hobli
+  
+  const [dashboardData] = useState({
+    totalLoans: 2500000,
+    pendingAmount: 850000,
+    interestCollected: 125000,
+    totalCustomers: 156,
+    currentLoans: 89,
+    closedLoans: 67,
+    approaching11Months: 12,
+    auctionEligible: 5
+  });
+
+  // Sample loan data
+  const [loans] = useState([
+    { id: 'GL001', name: 'Rajesh Kumar', mobile: '9876543210', date: '2024-02-15', amount: 50000, status: 'Taken In', months: 9 },
+    { id: 'GL002', name: 'Priya Sharma', mobile: '9876543211', date: '2024-01-10', amount: 75000, status: 'Taken In', months: 10 },
+    { id: 'GL003', name: 'Amit Patel', mobile: '9876543212', date: '2023-11-20', amount: 100000, status: 'Taken In', months: 12 },
+    { id: 'GL004', name: 'Sunita Devi', mobile: '9876543213', date: '2024-03-05', amount: 35000, status: 'Closed', months: 8 },
+    { id: 'GL005', name: 'Ramesh Reddy', mobile: '9876543214', date: '2023-10-15', amount: 85000, status: 'Auction Eligible', months: 13 },
+  ]);
+
+  const [loginForm, setLoginForm] = useState({
+    userId: '',
+    password: '',
+    otp: ''
+  });
+
+  const [signupForm, setSignupForm] = useState({
+    name: '',
+    address: '',
+    aadhaar: '',
+    email: '',
+    phone: '',
+    userId: '',
+    password: '',
+    confirmPassword: '',
+    bankerName: ''
+  });
+
+  // Removed automatic price updates to prevent form re-renders
+  // Prices are now static until manually refreshed
+
+
+
+  const handleLogout = () => {
+    setIsLoggedIn(false);
+    setCurrentView('login');
+  };
+
+  const handleLogin = () => {
+    if (loginForm.userId && loginForm.password) {
+      setIsLoggedIn(true);
+      setCurrentView('dashboard');
+    }
+  };
+
+  const handleSignup = () => {
+    if (!signupForm.name || !signupForm.phone || !signupForm.email || !signupForm.userId || !signupForm.password) {
+      alert('Please fill all required fields!');
+      return;
+    }
+    
+    if (signupForm.password !== signupForm.confirmPassword) {
+      alert('Passwords do not match!');
+      return;
+    }
+    
+    if (signupForm.aadhaar && signupForm.aadhaar.length !== 12) {
+      alert('Aadhaar number must be 12 digits!');
+      return;
+    }
+    
+    // Save user profile
+    setUserProfile({
+      name: signupForm.name,
+      email: signupForm.email,
+      phone: signupForm.phone,
+      address: signupForm.address,
+      aadhaar: signupForm.aadhaar,
+      userId: signupForm.userId,
+      bankerName: signupForm.bankerName
+    });
+    
+    alert('Account created successfully! Please login with your credentials.');
+    setCurrentView('login');
+  };
+
+  const toggleVisibility = (field) => {
+    setVisibility(prev => ({...prev, [field]: !prev[field]}));
+  };
+
+  const filteredLoans = loans.filter(loan => {
+    // Filter by loan type
+    if (loanTypeFilter === 'current' && loan.status === 'Closed') return false;
+    if (loanTypeFilter === 'closed' && loan.status !== 'Closed') return false;
+    
+    // Filter by search
+    if (searchQuery) {
+      const query = searchQuery.toLowerCase();
+      switch(searchFilter) {
+        case 'customerId':
+          return loan.id.toLowerCase().includes(query);
+        case 'mobile':
+          return loan.mobile.includes(query);
+        case 'name':
+          return loan.name.toLowerCase().includes(query);
+        case 'date':
+          return loan.date.includes(query);
+        default:
+          return true;
+      }
+    }
+    
+    return true;
+  });
+
+  const LoginScreen = () => {
+    const handleInputChange = (field, value) => {
+      setLoginForm(prev => ({...prev, [field]: value}));
+    };
+
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-yellow-50 to-yellow-100 flex items-center justify-center p-4">
+        <div className="bg-white rounded-2xl shadow-2xl w-full max-w-md p-8">
+          <div className="text-center mb-8">
+            <div className="w-16 h-16 bg-yellow-500 rounded-full flex items-center justify-center mx-auto mb-4">
+              <Package className="w-8 h-8 text-white" />
+            </div>
+            <h1 className="text-3xl font-bold text-gray-800">Gold Loan Manager</h1>
+            <p className="text-gray-600 mt-2">Secure & Efficient Loan Management</p>
+          </div>
+
+          <div className="bg-gradient-to-r from-yellow-400 to-yellow-500 rounded-xl p-4 mb-6">
+            <div className="flex justify-between items-center text-white">
+              <div>
+                <p className="text-xs opacity-90">Gold 22K</p>
+                <p className="text-lg font-bold">₹{goldPrice['22k'].toFixed(0)}/g</p>
+              </div>
+              <div>
+                <p className="text-xs opacity-90">Gold 24K</p>
+                <p className="text-lg font-bold">₹{goldPrice['24k'].toFixed(0)}/g</p>
+              </div>
+              <div>
+                <p className="text-xs opacity-90">Silver</p>
+                <p className="text-lg font-bold">₹{silverPrice.toFixed(0)}/g</p>
+              </div>
+            </div>
+          </div>
+
+          <div className="space-y-4">
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">User ID</label>
+              <input
+                type="text"
+                value={loginForm.userId}
+                onChange={(e) => handleInputChange('userId', e.target.value)}
+                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-yellow-500 focus:border-transparent"
+                placeholder="Enter your User ID"
+              />
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">Password</label>
+              <input
+                type="password"
+                value={loginForm.password}
+                onChange={(e) => handleInputChange('password', e.target.value)}
+                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-yellow-500 focus:border-transparent"
+                placeholder="Enter your password"
+              />
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">OTP</label>
+              <input
+                type="text"
+                value={loginForm.otp}
+                onChange={(e) => handleInputChange('otp', e.target.value)}
+                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-yellow-500 focus:border-transparent"
+                placeholder="Enter OTP"
+              />
+            </div>
+
+            <button
+              onClick={handleLogin}
+              className="w-full bg-yellow-500 hover:bg-yellow-600 text-white font-semibold py-3 rounded-lg transition duration-200"
+            >
+              Login
+            </button>
+          </div>
+
+          <div className="mt-6 text-center">
+            <button
+              onClick={() => setCurrentView('signup')}
+              className="text-yellow-600 hover:text-yellow-700 font-medium mr-4"
+            >
+              Don't have an account? Sign Up
+            </button>
+            <span className="text-gray-400">|</span>
+            <button
+              onClick={() => setCurrentView('forgotPassword')}
+              className="text-yellow-600 hover:text-yellow-700 font-medium ml-4"
+            >
+              Forgot Password?
+            </button>
+          </div>
+        </div>
+      </div>
+    );
+  };
+
+  const ForgotPasswordScreen = () => {
+    const [resetEmail, setResetEmail] = useState('');
+    const [resetOTP, setResetOTP] = useState('');
+    const [newPassword, setNewPassword] = useState('');
+    const [confirmNewPassword, setConfirmNewPassword] = useState('');
+    const [resetStep, setResetStep] = useState(1); // 1=Email, 2=OTP, 3=NewPassword
+    const [generatedResetOTP, setGeneratedResetOTP] = useState('');
+
+    const handleSendResetOTP = () => {
+      if (!resetEmail) {
+        alert('Please enter your email!');
+        return;
+      }
+      const otp = Math.floor(100000 + Math.random() * 900000).toString();
+      setGeneratedResetOTP(otp);
+      alert(`Password reset OTP sent to ${resetEmail}: ${otp}\n(In production, this would be sent via email)`);
+      setResetStep(2);
+    };
+
+    const handleVerifyResetOTP = () => {
+      if (resetOTP === generatedResetOTP) {
+        setResetStep(3);
+      } else {
+        alert('Incorrect OTP! Please try again.');
+        setResetOTP('');
+      }
+    };
+
+    const handleResetPassword = () => {
+      if (!newPassword || !confirmNewPassword) {
+        alert('Please fill all fields!');
+        return;
+      }
+      if (newPassword !== confirmNewPassword) {
+        alert('Passwords do not match!');
+        return;
+      }
+      alert('Password reset successfully! Please login with your new password.');
+      setCurrentView('login');
+    };
+
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-yellow-50 to-yellow-100 flex items-center justify-center p-4">
+        <div className="bg-white rounded-2xl shadow-2xl w-full max-w-md p-8">
+          <div className="text-center mb-8">
+            <div className="w-16 h-16 bg-red-500 rounded-full flex items-center justify-center mx-auto mb-4">
+              <AlertCircle className="w-8 h-8 text-white" />
+            </div>
+            <h1 className="text-3xl font-bold text-gray-800">Forgot Password</h1>
+            <p className="text-gray-600 mt-2">Reset your account password</p>
+          </div>
+
+          {resetStep === 1 && (
+            <div className="space-y-4">
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Email Address</label>
+                <input
+                  type="email"
+                  value={resetEmail}
+                  onChange={(e) => setResetEmail(e.target.value)}
+                  className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-yellow-500 focus:border-transparent"
+                  placeholder="Enter your registered email"
+                />
+              </div>
+              <button
+                onClick={handleSendResetOTP}
+                className="w-full bg-yellow-500 hover:bg-yellow-600 text-white font-semibold py-3 rounded-lg transition"
+              >
+                Send Reset OTP
+              </button>
+              <button
+                onClick={() => setCurrentView('login')}
+                className="w-full text-gray-600 hover:text-gray-800 font-medium py-2"
+              >
+                ← Back to Login
+              </button>
+            </div>
+          )}
+
+          {resetStep === 2 && (
+            <div className="space-y-4">
+              <div className="bg-green-50 border-2 border-green-200 rounded-lg p-4 mb-4">
+                <p className="text-sm text-green-800">✅ OTP sent to {resetEmail}</p>
+                <div className="mt-3 p-3 bg-yellow-100 border-2 border-yellow-400 rounded-lg">
+                  <p className="text-xs text-yellow-800 font-semibold mb-1">🔑 Your Reset OTP:</p>
+                  <p className="text-2xl font-bold text-center text-yellow-900 tracking-widest">{generatedResetOTP}</p>
+                </div>
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Enter OTP</label>
+                <input
+                  type="text"
+                  value={resetOTP}
+                  onChange={(e) => setResetOTP(e.target.value.replace(/\D/g, ''))}
+                  className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-yellow-500 text-center text-2xl font-bold tracking-widest"
+                  placeholder="000000"
+                  maxLength="6"
+                />
+              </div>
+              <button
+                onClick={handleVerifyResetOTP}
+                disabled={resetOTP.length !== 6}
+                className={`w-full py-3 rounded-lg font-semibold transition ${
+                  resetOTP.length === 6
+                    ? 'bg-yellow-500 hover:bg-yellow-600 text-white'
+                    : 'bg-gray-300 text-gray-500 cursor-not-allowed'
+                }`}
+              >
+                Verify OTP
+              </button>
+              <button
+                onClick={handleSendResetOTP}
+                className="w-full text-yellow-600 hover:text-yellow-700 font-medium py-2"
+              >
+                🔄 Resend OTP
+              </button>
+            </div>
+          )}
+
+          {resetStep === 3 && (
+            <div className="space-y-4">
+              <div className="bg-green-50 border-2 border-green-200 rounded-lg p-4 mb-4">
+                <p className="text-sm text-green-800 text-center">✅ OTP Verified! Create your new password</p>
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">New Password</label>
+                <input
+                  type="password"
+                  value={newPassword}
+                  onChange={(e) => setNewPassword(e.target.value)}
+                  className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-yellow-500"
+                  placeholder="Enter new password"
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Confirm New Password</label>
+                <input
+                  type="password"
+                  value={confirmNewPassword}
+                  onChange={(e) => setConfirmNewPassword(e.target.value)}
+                  className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-yellow-500"
+                  placeholder="Re-enter new password"
+                />
+              </div>
+              <button
+                onClick={handleResetPassword}
+                className="w-full bg-green-500 hover:bg-green-600 text-white font-semibold py-3 rounded-lg transition"
+              >
+                Reset Password
+              </button>
+            </div>
+          )}
+        </div>
+      </div>
+    );
+  };
+
+  const SignupScreen = () => (
+    <div className="min-h-screen bg-gradient-to-br from-yellow-50 to-yellow-100 flex items-center justify-center p-4">
+      <div className="bg-white rounded-2xl shadow-2xl w-full max-w-2xl p-8 max-h-screen overflow-y-auto">
+        <h1 className="text-3xl font-bold text-gray-800 mb-6 text-center">Create Account</h1>
+        
+        <div className="space-y-4">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">Full Name</label>
+              <input
+                type="text"
+                value={signupForm.name}
+                onChange={(e) => setSignupForm({...signupForm, name: e.target.value})}
+                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-yellow-500 focus:border-transparent"
+                placeholder="Enter full name"
+              />
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">Phone Number</label>
+              <input
+                type="tel"
+                value={signupForm.phone}
+                onChange={(e) => setSignupForm({...signupForm, phone: e.target.value})}
+                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-yellow-500 focus:border-transparent"
+                placeholder="Enter phone number"
+              />
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">Email</label>
+              <input
+                type="email"
+                value={signupForm.email}
+                onChange={(e) => setSignupForm({...signupForm, email: e.target.value})}
+                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-yellow-500 focus:border-transparent"
+                placeholder="Enter email address"
+              />
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">Aadhaar Number</label>
+              <input
+                type="text"
+                value={signupForm.aadhaar}
+                onChange={(e) => setSignupForm({...signupForm, aadhaar: e.target.value})}
+                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-yellow-500 focus:border-transparent"
+                placeholder="Enter 12-digit Aadhaar"
+                maxLength="12"
+              />
+            </div>
+          </div>
+
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">Address</label>
+            <textarea
+              value={signupForm.address}
+              onChange={(e) => setSignupForm({...signupForm, address: e.target.value})}
+              className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-yellow-500 focus:border-transparent"
+              rows="2"
+              placeholder="Enter complete address"
+            />
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">Create User ID</label>
+              <input
+                type="text"
+                value={signupForm.userId}
+                onChange={(e) => setSignupForm({...signupForm, userId: e.target.value})}
+                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-yellow-500 focus:border-transparent"
+                placeholder="Choose a unique User ID"
+              />
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">Password</label>
+              <input
+                type="password"
+                value={signupForm.password}
+                onChange={(e) => setSignupForm({...signupForm, password: e.target.value})}
+                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-yellow-500 focus:border-transparent"
+                placeholder="Create password"
+              />
+            </div>
+          </div>
+
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">Confirm Password</label>
+            <input
+              type="password"
+              value={signupForm.confirmPassword}
+              onChange={(e) => setSignupForm({...signupForm, confirmPassword: e.target.value})}
+              className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-yellow-500 focus:border-transparent"
+              placeholder="Re-enter password"
+            />
+          </div>
+
+          <div className="bg-yellow-50 border-2 border-yellow-400 rounded-lg p-4">
+            <label className="block text-sm font-bold text-yellow-900 mb-1">
+              🏦 Banker's Name / Business Name
+            </label>
+            <input
+              type="text"
+              value={signupForm.bankerName}
+              onChange={(e) => setSignupForm({...signupForm, bankerName: e.target.value})}
+              className="w-full px-4 py-2 border border-yellow-300 rounded-lg focus:ring-2 focus:ring-yellow-500 focus:border-transparent"
+              placeholder="e.g., Balaji Bankers & Jewellers"
+            />
+            <p className="text-xs text-yellow-700 mt-2">
+              This name will appear on all dashboards and receipts
+            </p>
+          </div>
+
+          <button
+            onClick={handleSignup}
+            className="w-full bg-yellow-500 hover:bg-yellow-600 text-white font-semibold py-3 rounded-lg transition duration-200"
+          >
+            Sign Up
+          </button>
+        </div>
+
+        <div className="mt-6 text-center">
+          <button
+            onClick={() => setCurrentView('login')}
+            className="text-yellow-600 hover:text-yellow-700 font-medium"
+          >
+            Already have an account? Login
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+
+  const DashboardScreen = () => (
+    <div className="min-h-screen bg-gray-50">
+      {/* Header */}
+      <header className="bg-white shadow-sm sticky top-0 z-10">
+        <div className="max-w-7xl mx-auto px-4 py-4 flex justify-between items-center">
+          <div className="flex items-center space-x-3">
+            <Package className="w-8 h-8 text-yellow-500" />
+            <div>
+              <h1 className="text-2xl font-bold text-gray-800">{userProfile.bankerName || 'Gold Loan Manager'}</h1>
+              <p className="text-xs text-gray-500">Business Management System</p>
+            </div>
+          </div>
+          
+          <div className="flex items-center space-x-4">
+            <div className="hidden md:flex items-center space-x-6">
+              <div className="text-right">
+                <p className="text-xs text-gray-500">Gold 24K</p>
+                <p className="text-sm font-semibold text-yellow-600">₹{goldPrice['24k'].toFixed(0)}/g</p>
+              </div>
+              <div className="text-right">
+                <p className="text-xs text-gray-500">Silver</p>
+                <p className="text-sm font-semibold text-gray-600">₹{silverPrice.toFixed(0)}/g</p>
+              </div>
+            </div>
+            <button
+              onClick={() => setCurrentView('profile')}
+              className="flex items-center space-x-2 px-4 py-2 bg-indigo-500 text-white rounded-lg hover:bg-indigo-600 transition"
+            >
+              <Users className="w-4 h-4" />
+              <span className="hidden md:inline">Profile</span>
+            </button>
+            <button
+              onClick={handleLogout}
+              className="flex items-center space-x-2 px-4 py-2 bg-red-500 text-white rounded-lg hover:bg-red-600 transition"
+            >
+              <LogOut className="w-4 h-4" />
+              <span className="hidden md:inline">Logout</span>
+            </button>
+          </div>
+        </div>
+      </header>
+
+      <div className="max-w-7xl mx-auto px-4 py-8">
+        {/* Dashboard Header with Filters */}
+        <div className="mb-8">
+          <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 mb-6">
+            <h2 className="text-2xl font-bold text-gray-800">Dashboard Overview</h2>
+            
+            <div className="flex flex-wrap gap-3">
+              {/* Time Period Filter */}
+              <select
+                value={dashboardFilter}
+                onChange={(e) => setDashboardFilter(e.target.value)}
+                className="px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-yellow-500 bg-white"
+              >
+                <option value="30days">Last 30 Days</option>
+                <option value="2months">Last 2 Months</option>
+                <option value="6months">Last 6 Months</option>
+                <option value="12months">Last 12 Months</option>
+              </select>
+
+              {/* Loan Type Filter */}
+              <select
+                value={loanTypeFilter}
+                onChange={(e) => setLoanTypeFilter(e.target.value)}
+                className="px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-yellow-500 bg-white"
+              >
+                <option value="all">All Loans</option>
+                <option value="current">Current Loans</option>
+                <option value="closed">Closed Loans</option>
+              </select>
+            </div>
+          </div>
+
+          {/* Dashboard Stats Cards */}
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+            {/* Total Loans Given */}
+            <div className="bg-gradient-to-br from-blue-500 to-blue-600 rounded-xl p-6 text-white relative overflow-hidden">
+              <button
+                onClick={() => toggleVisibility('totalLoans')}
+                className="absolute top-4 right-4 p-1 hover:bg-white/20 rounded transition"
+              >
+                {visibility.totalLoans ? <Eye className="w-4 h-4" /> : <EyeOff className="w-4 h-4" />}
+              </button>
+              <DollarSign className="w-8 h-8 opacity-80 mb-4" />
+              <p className="text-sm opacity-90 mb-1">Total Loans Given</p>
+              {visibility.totalLoans ? (
+                <p className="text-3xl font-bold">₹{(dashboardData.totalLoans / 100000).toFixed(1)}L</p>
+              ) : (
+                <p className="text-3xl font-bold">••••••</p>
+              )}
+              <p className="text-xs opacity-75 mt-2">{dashboardData.currentLoans} active loans</p>
+            </div>
+
+            {/* Pending Amount */}
+            <div className="bg-gradient-to-br from-orange-500 to-orange-600 rounded-xl p-6 text-white relative overflow-hidden">
+              <button
+                onClick={() => toggleVisibility('pendingAmount')}
+                className="absolute top-4 right-4 p-1 hover:bg-white/20 rounded transition"
+              >
+                {visibility.pendingAmount ? <Eye className="w-4 h-4" /> : <EyeOff className="w-4 h-4" />}
+              </button>
+              <AlertCircle className="w-8 h-8 opacity-80 mb-4" />
+              <p className="text-sm opacity-90 mb-1">Pending Amount</p>
+              {visibility.pendingAmount ? (
+                <p className="text-3xl font-bold">₹{(dashboardData.pendingAmount / 100000).toFixed(1)}L</p>
+              ) : (
+                <p className="text-3xl font-bold">••••••</p>
+              )}
+              <p className="text-xs opacity-75 mt-2">From {dashboardData.currentLoans} customers</p>
+            </div>
+
+            {/* Interest Collected */}
+            <div className="bg-gradient-to-br from-green-500 to-green-600 rounded-xl p-6 text-white relative overflow-hidden">
+              <button
+                onClick={() => toggleVisibility('interestCollected')}
+                className="absolute top-4 right-4 p-1 hover:bg-white/20 rounded transition"
+              >
+                {visibility.interestCollected ? <Eye className="w-4 h-4" /> : <EyeOff className="w-4 h-4" />}
+              </button>
+              <TrendingUp className="w-8 h-8 opacity-80 mb-4" />
+              <p className="text-sm opacity-90 mb-1">Interest Collected</p>
+              {visibility.interestCollected ? (
+                <p className="text-3xl font-bold">₹{(dashboardData.interestCollected / 100000).toFixed(1)}L</p>
+              ) : (
+                <p className="text-3xl font-bold">••••••</p>
+              )}
+              <p className="text-xs opacity-75 mt-2">From {dashboardData.closedLoans} closed loans</p>
+            </div>
+
+            {/* Total Customers */}
+            <div className="bg-gradient-to-br from-purple-500 to-purple-600 rounded-xl p-6 text-white relative overflow-hidden">
+              <button
+                onClick={() => toggleVisibility('totalCustomers')}
+                className="absolute top-4 right-4 p-1 hover:bg-white/20 rounded transition"
+              >
+                {visibility.totalCustomers ? <Eye className="w-4 h-4" /> : <EyeOff className="w-4 h-4" />}
+              </button>
+              <Users className="w-8 h-8 opacity-80 mb-4" />
+              <p className="text-sm opacity-90 mb-1">Total Customers</p>
+              {visibility.totalCustomers ? (
+                <p className="text-3xl font-bold">{dashboardData.totalCustomers}</p>
+              ) : (
+                <p className="text-3xl font-bold">•••</p>
+              )}
+              <p className="text-xs opacity-75 mt-2">Total bills generated</p>
+            </div>
+          </div>
+        </div>
+
+        {/* Alerts Section */}
+        <div className="mb-8">
+          <div className="bg-gradient-to-r from-red-50 to-orange-50 border-l-4 border-red-500 rounded-lg p-6">
+            <div className="flex items-start">
+              <Bell className="w-6 h-6 text-red-600 mr-3 flex-shrink-0 mt-1" />
+              <div className="flex-1">
+                <h4 className="font-bold text-gray-800 mb-3 text-lg">Alerts & Reminders</h4>
+                <div className="grid md:grid-cols-2 gap-4">
+                  <div className="bg-white rounded-lg p-4 border border-orange-200">
+                    <div className="flex items-center justify-between mb-2">
+                      <span className="text-orange-700 font-semibold">Approaching 11 Months</span>
+                      <span className="bg-orange-100 text-orange-700 px-3 py-1 rounded-full text-sm font-bold">
+                        {dashboardData.approaching11Months}
+                      </span>
+                    </div>
+                    <p className="text-sm text-gray-600">Customers nearing auction eligibility</p>
+                  </div>
+                  <div className="bg-white rounded-lg p-4 border border-red-200">
+                    <div className="flex items-center justify-between mb-2">
+                      <span className="text-red-700 font-semibold">Auction Eligible (12+ months)</span>
+                      <span className="bg-red-100 text-red-700 px-3 py-1 rounded-full text-sm font-bold">
+                        {dashboardData.auctionEligible}
+                      </span>
+                    </div>
+                    <p className="text-sm text-gray-600">Ready for auction process</p>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        {/* Search Section */}
+        <div className="mb-8">
+          <div className="bg-white rounded-xl shadow-md p-6">
+            <h3 className="text-lg font-bold text-gray-800 mb-4 flex items-center">
+              <Search className="w-5 h-5 mr-2 text-yellow-600" />
+              Customer Search
+            </h3>
+            <div className="flex flex-col md:flex-row gap-3">
+              <select
+                value={searchFilter}
+                onChange={(e) => setSearchFilter(e.target.value)}
+                className="px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-yellow-500"
+              >
+                <option value="customerId">Customer ID</option>
+                <option value="mobile">Mobile Number</option>
+                <option value="name">Name</option>
+                <option value="date">Date of Loan</option>
+                <option value="taluk">Taluk</option>
+                <option value="hobli">Hobli</option>
+              </select>
+              <input
+                type="text"
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                placeholder={`Search by ${searchFilter.replace(/([A-Z])/g, ' $1').toLowerCase()}...`}
+                className="flex-1 px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-yellow-500"
+              />
+              <button className="px-6 py-2 bg-yellow-500 text-white rounded-lg hover:bg-yellow-600 transition flex items-center justify-center">
+                <Search className="w-4 h-4 mr-2" />
+                Search
+              </button>
+            </div>
+          </div>
+        </div>
+
+        {/* Loan List Table */}
+        <div className="bg-white rounded-xl shadow-md overflow-hidden mb-8">
+          <div className="p-6 border-b border-gray-200">
+            <h3 className="text-lg font-bold text-gray-800 flex items-center">
+              <FileText className="w-5 h-5 mr-2 text-yellow-600" />
+              {loanTypeFilter === 'all' ? 'All Loans' : loanTypeFilter === 'current' ? 'Current Loans' : 'Closed Loans'}
+              <span className="ml-3 text-sm bg-gray-100 px-3 py-1 rounded-full text-gray-600">
+                {filteredLoans.length} records
+              </span>
+            </h3>
+          </div>
+          
+          <div className="overflow-x-auto">
+            <table className="w-full">
+              <thead className="bg-gray-50">
+                <tr>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Loan ID</th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Customer Name</th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Mobile</th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Date</th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Amount</th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Duration</th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Status</th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Action</th>
+                </tr>
+              </thead>
+              <tbody className="bg-white divide-y divide-gray-200">
+                {filteredLoans.map((loan) => (
+                  <tr key={loan.id} className="hover:bg-gray-50">
+                    <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">{loan.id}</td>
+                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{loan.name}</td>
+                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-600">{loan.mobile}</td>
+                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-600">{loan.date}</td>
+                    <td className="px-6 py-4 whitespace-nowrap text-sm font-semibold text-gray-900">₹{loan.amount.toLocaleString()}</td>
+                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-600">{loan.months} months</td>
+                    <td className="px-6 py-4 whitespace-nowrap">
+                      <span className={`px-3 py-1 rounded-full text-xs font-semibold ${
+                        loan.status === 'Taken In' ? 'bg-blue-100 text-blue-800' :
+                        loan.status === 'Closed' ? 'bg-green-100 text-green-800' :
+                        'bg-red-100 text-red-800'
+                      }`}>
+                        {loan.status}
+                      </span>
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap text-sm">
+                      <button className="text-yellow-600 hover:text-yellow-700 font-medium">View Details</button>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </div>
+
+        {/* Quick Actions */}
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+          <button
+            onClick={() => setCurrentView('newLoan')}
+            className="bg-white rounded-xl shadow-md p-6 hover:shadow-xl transition text-left border-2 border-transparent hover:border-yellow-500"
+          >
+            <div className="w-12 h-12 bg-yellow-100 rounded-lg flex items-center justify-center mb-4">
+              <Package className="w-6 h-6 text-yellow-600" />
+            </div>
+            <h3 className="text-xl font-bold text-gray-800 mb-2">New Loan</h3>
+            <p className="text-gray-600">Create new gold/silver loan entry</p>
+          </button>
+
+          <button
+            onClick={() => setCurrentView('redeem')}
+            className="bg-white rounded-xl shadow-md p-6 hover:shadow-xl transition text-left border-2 border-transparent hover:border-green-500"
+          >
+            <div className="w-12 h-12 bg-green-100 rounded-lg flex items-center justify-center mb-4">
+              <DollarSign className="w-6 h-6 text-green-600" />
+            </div>
+            <h3 className="text-xl font-bold text-gray-800 mb-2">Redeem Loan</h3>
+            <p className="text-gray-600">Process loan closure & redemption</p>
+          </button>
+
+          <button
+            onClick={() => setCurrentView('auction')}
+            className="bg-white rounded-xl shadow-md p-6 hover:shadow-xl transition text-left border-2 border-transparent hover:border-red-500"
+          >
+            <div className="w-12 h-12 bg-red-100 rounded-lg flex items-center justify-center mb-4">
+              <AlertCircle className="w-6 h-6 text-red-600" />
+            </div>
+            <h3 className="text-xl font-bold text-gray-800 mb-2">Auction List</h3>
+            <p className="text-gray-600">View 12+ months overdue loans</p>
+          </button>
+
+          <button
+            onClick={() => setCurrentView('analytics')}
+            className="bg-white rounded-xl shadow-md p-6 hover:shadow-xl transition text-left border-2 border-transparent hover:border-purple-500"
+          >
+            <div className="w-12 h-12 bg-purple-100 rounded-lg flex items-center justify-center mb-4">
+              <TrendingUp className="w-6 h-6 text-purple-600" />
+            </div>
+            <h3 className="text-xl font-bold text-gray-800 mb-2">Analytics</h3>
+            <p className="text-gray-600">View performance & insights</p>
+            <div className="mt-3 flex items-center text-xs text-purple-600">
+              <span className="font-semibold">🔒 Secure Access</span>
+            </div>
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+
+  const ProfileScreen = () => {
+    const [isEditing, setIsEditing] = useState(false);
+    const [editedProfile, setEditedProfile] = useState({...userProfile});
+
+    const handleSaveProfile = () => {
+      setUserProfile(editedProfile);
+      setIsEditing(false);
+      alert('Profile updated successfully!');
+    };
+
+    const handleCancelEdit = () => {
+      setEditedProfile({...userProfile});
+      setIsEditing(false);
+    };
+
+    return (
+      <div className="min-h-screen bg-gray-50 p-4 md:p-8">
+        <div className="max-w-4xl mx-auto">
+          {/* Header */}
+          <div className="bg-gradient-to-r from-indigo-500 to-purple-600 rounded-t-xl shadow-lg p-6 text-white">
+            <div className="flex justify-between items-center">
+              <div>
+                <h2 className="text-3xl font-bold flex items-center mb-2">
+                  <Users className="w-8 h-8 mr-3" />
+                  My Profile
+                </h2>
+                <p className="text-indigo-100">Owner Account Details</p>
+              </div>
+              <button
+                onClick={() => setCurrentView('dashboard')}
+                className="px-6 py-2 bg-white text-purple-600 rounded-lg hover:bg-gray-100 transition font-semibold"
+              >
+                Back to Dashboard
+              </button>
+            </div>
+          </div>
+
+          <div className="bg-white rounded-b-xl shadow-lg p-8">
+            {/* Profile Picture Section */}
+            <div className="flex justify-center mb-8">
+              <div className="relative">
+                <div className="w-32 h-32 bg-gradient-to-br from-indigo-400 to-purple-500 rounded-full flex items-center justify-center text-white text-5xl font-bold">
+                  {userProfile.name ? userProfile.name.charAt(0).toUpperCase() : 'U'}
+                </div>
+                <div className="absolute bottom-0 right-0 w-10 h-10 bg-green-500 rounded-full border-4 border-white flex items-center justify-center">
+                  <span className="text-white text-xs">✓</span>
+                </div>
+              </div>
+            </div>
+
+            {/* Edit Button */}
+            {!isEditing && (
+              <div className="text-center mb-6">
+                <button
+                  onClick={() => setIsEditing(true)}
+                  className="px-8 py-3 bg-indigo-500 text-white rounded-lg hover:bg-indigo-600 transition font-semibold"
+                >
+                  ✏️ Edit Profile
+                </button>
+              </div>
+            )}
+
+            {/* Profile Information */}
+            <div className="space-y-6">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                {/* Full Name */}
+                <div className="bg-gray-50 rounded-lg p-4 border-2 border-gray-200">
+                  <label className="block text-sm font-bold text-gray-700 mb-2">Full Name</label>
+                  {isEditing ? (
+                    <input
+                      type="text"
+                      value={editedProfile.name}
+                      onChange={(e) => setEditedProfile({...editedProfile, name: e.target.value})}
+                      className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500"
+                    />
+                  ) : (
+                    <p className="text-lg font-semibold text-gray-900">{userProfile.name || 'Not provided'}</p>
+                  )}
+                </div>
+
+                {/* User ID */}
+                <div className="bg-gray-50 rounded-lg p-4 border-2 border-gray-200">
+                  <label className="block text-sm font-bold text-gray-700 mb-2">User ID</label>
+                  <p className="text-lg font-semibold text-gray-900">{userProfile.userId || 'Not provided'}</p>
+                  <span className="text-xs text-gray-500">(Cannot be changed)</span>
+                </div>
+
+                {/* Email */}
+                <div className="bg-gray-50 rounded-lg p-4 border-2 border-gray-200">
+                  <label className="block text-sm font-bold text-gray-700 mb-2">Email Address</label>
+                  {isEditing ? (
+                    <input
+                      type="email"
+                      value={editedProfile.email}
+                      onChange={(e) => setEditedProfile({...editedProfile, email: e.target.value})}
+                      className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500"
+                    />
+                  ) : (
+                    <p className="text-lg font-semibold text-gray-900">{userProfile.email || 'Not provided'}</p>
+                  )}
+                </div>
+
+                {/* Phone Number */}
+                <div className="bg-gray-50 rounded-lg p-4 border-2 border-gray-200">
+                  <label className="block text-sm font-bold text-gray-700 mb-2">Phone Number</label>
+                  {isEditing ? (
+                    <input
+                      type="tel"
+                      value={editedProfile.phone}
+                      onChange={(e) => setEditedProfile({...editedProfile, phone: e.target.value})}
+                      className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500"
+                    />
+                  ) : (
+                    <p className="text-lg font-semibold text-gray-900">{userProfile.phone || 'Not provided'}</p>
+                  )}
+                </div>
+
+                {/* Aadhaar Number */}
+                <div className="bg-gray-50 rounded-lg p-4 border-2 border-gray-200">
+                  <label className="block text-sm font-bold text-gray-700 mb-2">Aadhaar Number</label>
+                  <p className="text-lg font-semibold text-gray-900">
+                    {userProfile.aadhaar ? `**** **** ${userProfile.aadhaar.slice(-4)}` : 'Not provided'}
+                  </p>
+                  <span className="text-xs text-gray-500">(Masked for security)</span>
+                </div>
+
+                {/* Account Status */}
+                <div className="bg-green-50 rounded-lg p-4 border-2 border-green-200">
+                  <label className="block text-sm font-bold text-green-700 mb-2">Account Status</label>
+                  <p className="text-lg font-semibold text-green-900">✅ Active</p>
+                  <span className="text-xs text-green-600">Verified Account</span>
+                </div>
+              </div>
+
+              {/* Address */}
+              <div className="bg-gray-50 rounded-lg p-4 border-2 border-gray-200">
+                <label className="block text-sm font-bold text-gray-700 mb-2">Address</label>
+                {isEditing ? (
+                  <textarea
+                    value={editedProfile.address}
+                    onChange={(e) => setEditedProfile({...editedProfile, address: e.target.value})}
+                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500"
+                    rows="3"
+                  />
+                ) : (
+                  <p className="text-lg text-gray-900">{userProfile.address || 'Not provided'}</p>
+                )}
+              </div>
+
+              {/* Banker's Name */}
+              <div className="bg-gradient-to-r from-yellow-50 to-yellow-100 rounded-lg p-4 border-2 border-yellow-300">
+                <label className="block text-sm font-bold text-yellow-900 mb-2">🏦 Banker's Name / Business Name</label>
+                {isEditing ? (
+                  <input
+                    type="text"
+                    value={editedProfile.bankerName}
+                    onChange={(e) => setEditedProfile({...editedProfile, bankerName: e.target.value})}
+                    className="w-full px-4 py-2 border border-yellow-300 rounded-lg focus:ring-2 focus:ring-yellow-500"
+                    placeholder="e.g., Balaji Bankers & Jewellers"
+                  />
+                ) : (
+                  <p className="text-xl font-bold text-yellow-900">{userProfile.bankerName || 'Not provided'}</p>
+                )}
+                <p className="text-xs text-yellow-700 mt-2">This name will appear on all dashboards and receipts</p>
+              </div>
+            </div>
+
+            {/* Action Buttons when Editing */}
+            {isEditing && (
+              <div className="mt-8 flex justify-center space-x-4">
+                <button
+                  onClick={handleSaveProfile}
+                  className="px-8 py-3 bg-green-500 text-white rounded-lg hover:bg-green-600 transition font-semibold"
+                >
+                  💾 Save Changes
+                </button>
+                <button
+                  onClick={handleCancelEdit}
+                  className="px-8 py-3 bg-gray-500 text-white rounded-lg hover:bg-gray-600 transition font-semibold"
+                >
+                  ✕ Cancel
+                </button>
+              </div>
+            )}
+
+            {/* Account Info Footer */}
+            <div className="mt-8 pt-6 border-t-2 border-gray-200">
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4 text-center">
+                <div>
+                  <p className="text-sm text-gray-600 mb-1">Member Since</p>
+                  <p className="text-lg font-semibold text-gray-900">Nov 2024</p>
+                </div>
+                <div>
+                  <p className="text-sm text-gray-600 mb-1">Total Loans Processed</p>
+                  <p className="text-lg font-semibold text-gray-900">156</p>
+                </div>
+                <div>
+                  <p className="text-sm text-gray-600 mb-1">Account Type</p>
+                  <p className="text-lg font-semibold text-indigo-600">Premium Owner</p>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    );
+  };
+
+  const NewLoanForm = () => {
+    const [loanForm, setLoanForm] = useState({
+      customerId: '',
+      date: new Date().toISOString().split('T')[0],
+      name: '',
+      relation: 'S/o',
+      relationName: '',
+      address: '',
+      income: '',
+      mobile: '',
+      post: '',
+      hobli: '',
+      taluk: '',
+      aadhaar: '',
+      loanAmount: '',
+      loanPurpose: '',
+      numArticles: 1
+    });
+
+    const [articles, setArticles] = useState([
+      { type: 'Gold', description: '', grossWeight: '', netWeight: '', rate: '', pieces: '', value: '' }
+    ]);
+
+    const addArticle = () => {
+      setArticles([...articles, { type: 'Gold', description: '', grossWeight: '', netWeight: '', rate: '', pieces: '', value: '' }]);
+      setLoanForm({...loanForm, numArticles: articles.length + 1});
+    };
+
+    const removeArticle = (index) => {
+      const newArticles = articles.filter((_, i) => i !== index);
+      setArticles(newArticles);
+      setLoanForm({...loanForm, numArticles: newArticles.length});
+    };
+
+    const updateArticle = (index, field, value) => {
+      const newArticles = [...articles];
+      newArticles[index][field] = value;
+      
+      // Auto-calculate value
+      if (field === 'grossWeight' || field === 'rate') {
+        const gross = parseFloat(newArticles[index].grossWeight) || 0;
+        const rate = parseFloat(newArticles[index].rate) || 0;
+        newArticles[index].value = (gross * rate).toFixed(2);
+      }
+      
+      setArticles(newArticles);
+    };
+
+    const calculateTotalValue = () => {
+      return articles.reduce((sum, article) => sum + (parseFloat(article.value) || 0), 0).toFixed(2);
+    };
+
+    const numberToWords = (num) => {
+      const ones = ['', 'One', 'Two', 'Three', 'Four', 'Five', 'Six', 'Seven', 'Eight', 'Nine'];
+      const tens = ['', '', 'Twenty', 'Thirty', 'Forty', 'Fifty', 'Sixty', 'Seventy', 'Eighty', 'Ninety'];
+      const teens = ['Ten', 'Eleven', 'Twelve', 'Thirteen', 'Fourteen', 'Fifteen', 'Sixteen', 'Seventeen', 'Eighteen', 'Nineteen'];
+      
+      if (num === 0) return 'Zero';
+      if (num < 10) return ones[num];
+      if (num >= 10 && num < 20) return teens[num - 10];
+      if (num >= 20 && num < 100) return tens[Math.floor(num / 10)] + ' ' + ones[num % 10];
+      if (num >= 100 && num < 1000) return ones[Math.floor(num / 100)] + ' Hundred ' + numberToWords(num % 100);
+      if (num >= 1000 && num < 100000) return numberToWords(Math.floor(num / 1000)) + ' Thousand ' + numberToWords(num % 1000);
+      if (num >= 100000) return numberToWords(Math.floor(num / 100000)) + ' Lakh ' + numberToWords(num % 100000);
+      return '';
+    };
+
+    const handleSubmit = () => {
+      alert('Loan created successfully! Status: TAKEN IN');
+      setCurrentView('dashboard');
+    };
+
+    const downloadLoanReceipt = () => {
+      const printContent = `
+        <!DOCTYPE html>
+        <html>
+        <head>
+          <meta charset="UTF-8">
+          <title>Loan Receipt - ${loanForm.customerId}</title>
+          <style>
+            * { margin: 0; padding: 0; box-sizing: border-box; }
+            @page { size: A4; margin: 15mm; }
+            body {
+              font-family: 'Courier New', monospace;
+              padding: 20px;
+              background: #fff;
+            }
+            .no-print {
+              text-align: center;
+              margin-bottom: 20px;
+              padding: 15px;
+              background: #fef3c7;
+              border: 2px solid #f59e0b;
+              border-radius: 8px;
+            }
+            .print-btn {
+              background: #f59e0b;
+              color: white;
+              border: none;
+              padding: 12px 24px;
+              font-size: 16px;
+              font-weight: bold;
+              cursor: pointer;
+              border-radius: 6px;
+              margin-right: 10px;
+            }
+            .close-btn {
+              background: #6b7280;
+              color: white;
+              border: none;
+              padding: 12px 24px;
+              font-size: 16px;
+              cursor: pointer;
+              border-radius: 6px;
+            }
+            @media print { .no-print { display: none !important; } }
+            .receipt {
+              background: #ffc0cb;
+              border: 3px solid #000;
+              padding: 20px;
+            }
+            .header {
+              text-align: center;
+              border-bottom: 2px solid #000;
+              padding-bottom: 15px;
+              margin-bottom: 20px;
+            }
+            .company-name {
+              font-size: 20pt;
+              font-weight: bold;
+              margin: 10px 0;
+            }
+            .receipt-no {
+              font-size: 24pt;
+              color: #dc2626;
+              font-weight: bold;
+              margin: 10px 0;
+            }
+            .section {
+              border: 2px solid #000;
+              padding: 15px;
+              margin: 15px 0;
+            }
+            .field {
+              margin: 8px 0;
+              font-size: 11pt;
+            }
+            .field-label {
+              font-weight: bold;
+              display: inline-block;
+              width: 150px;
+            }
+            table {
+              width: 100%;
+              border-collapse: collapse;
+              margin: 15px 0;
+            }
+            th, td {
+              border: 2px solid #000;
+              padding: 8px;
+              text-align: left;
+              font-size: 10pt;
+            }
+            th {
+              background: #f0f0f0;
+              font-weight: bold;
+            }
+            .footer {
+              margin-top: 30px;
+              padding-top: 15px;
+              border-top: 2px solid #000;
+              text-align: center;
+              font-size: 9pt;
+            }
+            .interest-notice {
+              background: #fee;
+              border: 2px solid #dc2626;
+              padding: 10px;
+              text-align: center;
+              font-weight: bold;
+              margin: 15px 0;
+            }
+          </style>
+        </head>
+        <body>
+          <div class="no-print">
+            <h2 style="color: #f59e0b; margin-bottom: 10px;">📄 Loan Receipt - Ready to Print</h2>
+            <button class="print-btn" onclick="window.print()">🖨️ Print / Save as PDF</button>
+            <button class="close-btn" onclick="window.close()">✕ Close</button>
+          </div>
+
+          <div class="receipt">
+            <div class="header">
+              <div style="font-size: 10pt;">Form 'H' See Rule 12 - RECEIPT</div>
+              <div class="company-name">${userProfile.bankerName || 'GOLD LOAN MANAGEMENT'}</div>
+              <div style="font-size: 11pt; margin-top: 5px;">${userProfile.address || 'Address Not Provided'}</div>
+              <div style="font-size: 12pt; font-weight: bold; margin-top: 10px;">PAWN BROKERS</div>
+              <div style="display: flex; justify-content: space-between; margin-top: 10px;">
+                <span style="font-size: 11pt;">No. <span class="receipt-no">${loanForm.customerId || 'N/A'}</span></span>
+                <span style="font-size: 11pt;">Date: ${loanForm.date || new Date().toISOString().split('T')[0]}</span>
+              </div>
+            </div>
+
+            <div class="section">
+              <div style="font-weight: bold; font-size: 12pt; margin-bottom: 10px;">NAME OF PAWNER</div>
+              <div class="field">
+                <span class="field-label">Name:</span>
+                <span>${loanForm.name || 'N/A'}</span>
+              </div>
+              <div class="field">
+                <span class="field-label">${loanForm.relation || 'S/o'}:</span>
+                <span>${loanForm.relationName || 'N/A'}</span>
+              </div>
+              <div class="field">
+                <span class="field-label">Address:</span>
+                <span>${loanForm.address || 'N/A'}</span>
+              </div>
+              <div style="display: flex; justify-content: space-between;">
+                <div class="field">
+                  <span class="field-label">Income:</span>
+                  <span>${loanForm.income || 'N/A'}</span>
+                </div>
+                <div class="field">
+                  <span class="field-label">Mobile:</span>
+                  <span>${loanForm.mobile || 'N/A'}</span>
+                </div>
+              </div>
+              <div style="display: flex; justify-content: space-between;">
+                <div class="field">
+                  <span class="field-label">Post:</span>
+                  <span>${loanForm.post || 'N/A'}</span>
+                </div>
+                <div class="field">
+                  <span class="field-label">Hobli:</span>
+                  <span>${loanForm.hobli || 'N/A'}</span>
+                </div>
+                <div class="field">
+                  <span class="field-label">Taluk:</span>
+                  <span>${loanForm.taluk || 'N/A'}</span>
+                </div>
+              </div>
+              <div class="field">
+                <span class="field-label">Aadhaar:</span>
+                <span>${loanForm.aadhaar || 'N/A'}</span>
+              </div>
+            </div>
+
+            <div class="section">
+              <div class="field">
+                <span class="field-label">Loan Purpose:</span>
+                <span>${loanForm.loanPurpose || 'N/A'}</span>
+              </div>
+            </div>
+
+            <div class="section">
+              <div style="display: flex; justify-content: space-between; margin-bottom: 10px;">
+                <div>
+                  <strong>Amount of Loan: Rs. ${loanForm.loanAmount || '0'}/-</strong>
+                </div>
+                <div>
+                  <strong>In Words: ${loanForm.loanAmount ? numberToWords(parseInt(loanForm.loanAmount)) + ' Rupees Only' : 'N/A'}</strong>
+                </div>
+              </div>
+            </div>
+
+            <div class="interest-notice">
+              RATE OF INTEREST FOURTEEN PERCENT. TIME AGREED FOR REDEMPTION 1 YEAR
+            </div>
+
+            <div class="section">
+              <div style="font-weight: bold; text-align: center; margin-bottom: 10px;">
+                THE FOLLOWING ARTICLE / ARTICLES IS / ARE PAWNED WITH US
+              </div>
+              <table>
+                <thead>
+                  <tr>
+                    <th>No.</th>
+                    <th>Type</th>
+                    <th>Description</th>
+                    <th>Gross Wt</th>
+                    <th>Net Wt</th>
+                    <th>Rate</th>
+                    <th>Pcs</th>
+                    <th>Value</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  ${articles.map((article, index) => `
+                    <tr>
+                      <td>${index + 1}</td>
+                      <td>${article.type}</td>
+                      <td>${article.description}</td>
+                      <td>${article.grossWeight}g</td>
+                      <td>${article.netWeight}g</td>
+                      <td>₹${article.rate}</td>
+                      <td>${article.pieces}</td>
+                      <td>₹${article.value}</td>
+                    </tr>
+                  `).join('')}
+                  <tr style="background: #ffffcc;">
+                    <td colspan="7" style="text-align: right;"><strong>TOTAL VALUE:</strong></td>
+                    <td><strong>₹${calculateTotalValue()}</strong></td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+
+            <div style="border: 2px solid #000; padding: 15px; margin: 15px 0;">
+              <div style="display: flex; justify-content: space-between;">
+                <div style="width: 45%; text-align: center; padding-top: 40px;">
+                  <div style="border-top: 2px solid #000; padding-top: 5px;">
+                    <strong>Signature of P.B. or His Agent</strong>
+                  </div>
+                </div>
+                <div style="width: 45%; text-align: center; padding-top: 40px;">
+                  <div style="border-top: 2px solid #000; padding-top: 5px;">
+                    <strong>Signature / LTI of Pawner</strong>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <div style="background: #e0f2fe; border: 2px solid #0284c7; padding: 10px; text-align: center; margin: 15px 0;">
+              <strong>I declare that the articles are my own.</strong> The statement is true to the best of my knowledge & belief.
+            </div>
+
+            <div class="footer">
+              Generated on: ${new Date().toLocaleString('en-IN')} | Status: TAKEN IN
+            </div>
+          </div>
+        </body>
+        </html>
+      `;
+
+      const printWindow = window.open('', '_blank', 'width=900,height=800');
+      if (printWindow) {
+        printWindow.document.open();
+        printWindow.document.write(printContent);
+        printWindow.document.close();
+        printWindow.onload = () => printWindow.focus();
+      } else {
+        alert('Please allow pop-ups to download the receipt.');
+      }
+    };
+
+    return (
+      <div className="min-h-screen bg-gray-50 p-4 md:p-8">
+        <div className="max-w-6xl mx-auto">
+          {/* Header */}
+          <div className="bg-white rounded-t-xl shadow-lg p-6 border-b-2 border-yellow-500">
+            <div className="flex justify-between items-center">
+              <div>
+                <h2 className="text-3xl font-bold text-gray-800 mb-2">New Loan Entry</h2>
+                <p className="text-gray-600">Gold/Silver Pawn Loan Registration</p>
+              </div>
+              <button
+                onClick={() => setCurrentView('dashboard')}
+                className="px-6 py-2 bg-gray-200 rounded-lg hover:bg-gray-300 transition"
+              >
+                Back to Dashboard
+              </button>
+            </div>
+          </div>
+
+          {/* Form Body - Pink background like the ticket */}
+          <div className="bg-pink-100 shadow-lg p-8">
+            {/* Receipt Number and Date */}
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
+              <div>
+                <label className="block text-sm font-bold text-gray-800 mb-2">Customer ID / Receipt No.</label>
+                <input
+                  type="text"
+                  value={loanForm.customerId}
+                  onChange={(e) => setLoanForm({...loanForm, customerId: e.target.value})}
+                  className="w-full px-4 py-3 border-2 border-gray-800 rounded-lg focus:ring-2 focus:ring-yellow-500 bg-white"
+                  placeholder="Enter Customer ID"
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-bold text-gray-800 mb-2">Date</label>
+                <input
+                  type="date"
+                  value={loanForm.date}
+                  onChange={(e) => setLoanForm({...loanForm, date: e.target.value})}
+                  className="w-full px-4 py-3 border-2 border-gray-800 rounded-lg focus:ring-2 focus:ring-yellow-500 bg-white"
+                />
+              </div>
+            </div>
+
+            {/* Customer Details */}
+            <div className="bg-white border-2 border-gray-800 rounded-lg p-6 mb-6">
+              <h3 className="text-lg font-bold text-gray-800 mb-4 uppercase">Name of Pawner</h3>
+              
+              <div className="grid grid-cols-1 gap-4 mb-4">
+                <div>
+                  <label className="block text-sm font-bold text-gray-800 mb-2">Full Name</label>
+                  <input
+                    type="text"
+                    value={loanForm.name}
+                    onChange={(e) => setLoanForm({...loanForm, name: e.target.value})}
+                    className="w-full px-4 py-3 border-2 border-gray-800 rounded-lg focus:ring-2 focus:ring-yellow-500"
+                    placeholder="Enter customer name"
+                  />
+                </div>
+              </div>
+
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
+                <div>
+                  <label className="block text-sm font-bold text-gray-800 mb-2">S/o, W/o, D/o, C/o</label>
+                  <select
+                    value={loanForm.relation}
+                    onChange={(e) => setLoanForm({...loanForm, relation: e.target.value})}
+                    className="w-full px-4 py-3 border-2 border-gray-800 rounded-lg focus:ring-2 focus:ring-yellow-500"
+                  >
+                    <option value="S/o">S/o (Son of)</option>
+                    <option value="W/o">W/o (Wife of)</option>
+                    <option value="D/o">D/o (Daughter of)</option>
+                    <option value="C/o">C/o (Care of)</option>
+                  </select>
+                </div>
+                <div className="md:col-span-2">
+                  <label className="block text-sm font-bold text-gray-800 mb-2">Relation Name</label>
+                  <input
+                    type="text"
+                    value={loanForm.relationName}
+                    onChange={(e) => setLoanForm({...loanForm, relationName: e.target.value})}
+                    className="w-full px-4 py-3 border-2 border-gray-800 rounded-lg focus:ring-2 focus:ring-yellow-500"
+                    placeholder="Enter father's/husband's name"
+                  />
+                </div>
+              </div>
+
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
+                <div>
+                  <label className="block text-sm font-bold text-gray-800 mb-2">Income (ಆದಾಯ)</label>
+                  <input
+                    type="text"
+                    value={loanForm.income}
+                    onChange={(e) => setLoanForm({...loanForm, income: e.target.value})}
+                    className="w-full px-4 py-3 border-2 border-gray-800 rounded-lg focus:ring-2 focus:ring-yellow-500"
+                    placeholder="Enter income"
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-bold text-gray-800 mb-2">Mobile Number</label>
+                  <input
+                    type="tel"
+                    value={loanForm.mobile}
+                    onChange={(e) => setLoanForm({...loanForm, mobile: e.target.value})}
+                    className="w-full px-4 py-3 border-2 border-gray-800 rounded-lg focus:ring-2 focus:ring-yellow-500"
+                    placeholder="Enter mobile number"
+                  />
+                </div>
+              </div>
+
+              <div className="mb-4">
+                <label className="block text-sm font-bold text-gray-800 mb-2">Address</label>
+                <textarea
+                  value={loanForm.address}
+                  onChange={(e) => setLoanForm({...loanForm, address: e.target.value})}
+                  className="w-full px-4 py-3 border-2 border-gray-800 rounded-lg focus:ring-2 focus:ring-yellow-500"
+                  rows="2"
+                  placeholder="Enter complete address"
+                />
+              </div>
+
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
+                <div>
+                  <label className="block text-sm font-bold text-gray-800 mb-2">POST</label>
+                  <input
+                    type="text"
+                    value={loanForm.post}
+                    onChange={(e) => setLoanForm({...loanForm, post: e.target.value})}
+                    className="w-full px-4 py-3 border-2 border-gray-800 rounded-lg focus:ring-2 focus:ring-yellow-500"
+                    placeholder="Post Office"
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-bold text-gray-800 mb-2">HOBLI</label>
+                  <input
+                    type="text"
+                    value={loanForm.hobli}
+                    onChange={(e) => setLoanForm({...loanForm, hobli: e.target.value})}
+                    className="w-full px-4 py-3 border-2 border-gray-800 rounded-lg focus:ring-2 focus:ring-yellow-500"
+                    placeholder="Hobli"
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-bold text-gray-800 mb-2">TALUK</label>
+                  <input
+                    type="text"
+                    value={loanForm.taluk}
+                    onChange={(e) => setLoanForm({...loanForm, taluk: e.target.value})}
+                    className="w-full px-4 py-3 border-2 border-gray-800 rounded-lg focus:ring-2 focus:ring-yellow-500"
+                    placeholder="Taluk"
+                  />
+                </div>
+              </div>
+
+              <div>
+                <label className="block text-sm font-bold text-gray-800 mb-2">Aadhaar Card Number</label>
+                <input
+                  type="text"
+                  value={loanForm.aadhaar}
+                  onChange={(e) => setLoanForm({...loanForm, aadhaar: e.target.value})}
+                  className="w-full px-4 py-3 border-2 border-gray-800 rounded-lg focus:ring-2 focus:ring-yellow-500"
+                  placeholder="Enter 12-digit Aadhaar number"
+                  maxLength="12"
+                />
+              </div>
+            </div>
+
+            {/* Document Upload Section */}
+            <div className="bg-white border-2 border-gray-800 rounded-lg p-6 mb-6">
+              <h3 className="text-lg font-bold text-gray-800 mb-4 uppercase">Attach Proof Documents</h3>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-sm font-bold text-gray-800 mb-2">Select Document Type</label>
+                  <select className="w-full px-4 py-3 border-2 border-gray-800 rounded-lg focus:ring-2 focus:ring-yellow-500">
+                    <option value="">-- Select Document Type --</option>
+                    <option value="aadhaar">Aadhaar Card</option>
+                    <option value="voter">Voter ID</option>
+                    <option value="driving">Driving License</option>
+                    <option value="pan">PAN Card</option>
+                    <option value="passport">Passport</option>
+                  </select>
+                </div>
+                <div>
+                  <label className="block text-sm font-bold text-gray-800 mb-2">Upload Document</label>
+                  <input 
+                    type="file" 
+                    accept="image/*,.pdf" 
+                    className="w-full px-4 py-3 border-2 border-gray-800 rounded-lg focus:ring-2 focus:ring-yellow-500 bg-white file:mr-4 file:py-2 file:px-4 file:rounded file:border-0 file:bg-yellow-500 file:text-white file:cursor-pointer hover:file:bg-yellow-600"
+                  />
+                </div>
+              </div>
+              <p className="text-xs text-gray-600 mt-3">
+                💡 Accepted formats: JPG, PNG, PDF • Max size: 5MB
+              </p>
+            </div>
+
+            {/* Loan Purpose */}
+            <div className="bg-white border-2 border-gray-800 rounded-lg p-6 mb-6">
+              <label className="block text-sm font-bold text-gray-800 mb-2">ಸಾಲದ ಉದ್ದೇಶ Loan Purpose</label>
+              <input
+                type="text"
+                value={loanForm.loanPurpose}
+                onChange={(e) => setLoanForm({...loanForm, loanPurpose: e.target.value})}
+                className="w-full px-4 py-3 border-2 border-gray-800 rounded-lg focus:ring-2 focus:ring-yellow-500"
+                placeholder="Enter loan purpose"
+              />
+            </div>
+
+            {/* Loan Amount */}
+            <div className="bg-white border-2 border-gray-800 rounded-lg p-6 mb-6">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-sm font-bold text-gray-800 mb-2">Amount of Loan (Rs.)</label>
+                  <input
+                    type="number"
+                    value={loanForm.loanAmount}
+                    onChange={(e) => setLoanForm({...loanForm, loanAmount: e.target.value})}
+                    className="w-full px-4 py-3 border-2 border-gray-800 rounded-lg focus:ring-2 focus:ring-yellow-500"
+                    placeholder="Enter loan amount"
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-bold text-gray-800 mb-2">RUPEES (In Words)</label>
+                  <div className="w-full px-4 py-3 border-2 border-gray-800 rounded-lg bg-gray-50 text-gray-700 font-semibold">
+                    {loanForm.loanAmount ? numberToWords(parseInt(loanForm.loanAmount)) + ' Rupees Only' : 'Amount in words will appear here'}
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            {/* Interest Rate Notice */}
+            <div className="bg-red-100 border-2 border-red-800 rounded-lg p-4 mb-6">
+              <p className="text-sm font-bold text-red-900 text-center">
+                RATE OF INTEREST FOURTEEN PERCENT. TIME AGREED FOR REDEMPTION 1 YEAR
+              </p>
+            </div>
+
+            {/* Articles Table */}
+            <div className="bg-white border-2 border-gray-800 rounded-lg p-6 mb-6">
+              <div className="flex justify-between items-center mb-4">
+                <h3 className="text-lg font-bold text-gray-800 uppercase">
+                  THE FOLLOWING ARTICLE / ARTICLES IS / ARE PAWNED WITH US - PARTICULARS
+                </h3>
+                <span className="text-sm font-bold text-gray-700">
+                  No. of Articles: {articles.length}
+                </span>
+              </div>
+
+              <div className="overflow-x-auto">
+                <table className="w-full border-collapse">
+                  <thead>
+                    <tr className="bg-gray-200">
+                      <th className="border-2 border-gray-800 px-2 py-2 text-xs font-bold">No.</th>
+                      <th className="border-2 border-gray-800 px-2 py-2 text-xs font-bold">Type</th>
+                      <th className="border-2 border-gray-800 px-2 py-2 text-xs font-bold">Description</th>
+                      <th className="border-2 border-gray-800 px-2 py-2 text-xs font-bold">Gross Wt (g)</th>
+                      <th className="border-2 border-gray-800 px-2 py-2 text-xs font-bold">Net Wt (g)</th>
+                      <th className="border-2 border-gray-800 px-2 py-2 text-xs font-bold">Rate (₹/g)</th>
+                      <th className="border-2 border-gray-800 px-2 py-2 text-xs font-bold">Pieces</th>
+                      <th className="border-2 border-gray-800 px-2 py-2 text-xs font-bold">Value (₹)</th>
+                      <th className="border-2 border-gray-800 px-2 py-2 text-xs font-bold">Action</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {articles.map((article, index) => (
+                      <tr key={index}>
+                        <td className="border-2 border-gray-800 px-2 py-2 text-center font-bold">{index + 1}</td>
+                        <td className="border-2 border-gray-800 px-2 py-2">
+                          <select
+                            value={article.type}
+                            onChange={(e) => updateArticle(index, 'type', e.target.value)}
+                            className="w-full px-2 py-1 border border-gray-300 rounded"
+                          >
+                            <option value="Gold">Gold</option>
+                            <option value="Silver">Silver</option>
+                          </select>
+                        </td>
+                        <td className="border-2 border-gray-800 px-2 py-2">
+                          <input
+                            type="text"
+                            value={article.description}
+                            onChange={(e) => updateArticle(index, 'description', e.target.value)}
+                            className="w-full px-2 py-1 border border-gray-300 rounded"
+                            placeholder="Ring, Chain..."
+                          />
+                        </td>
+                        <td className="border-2 border-gray-800 px-2 py-2">
+                          <input
+                            type="number"
+                            step="0.01"
+                            value={article.grossWeight}
+                            onChange={(e) => updateArticle(index, 'grossWeight', e.target.value)}
+                            className="w-full px-2 py-1 border border-gray-300 rounded"
+                          />
+                        </td>
+                        <td className="border-2 border-gray-800 px-2 py-2">
+                          <input
+                            type="number"
+                            step="0.01"
+                            value={article.netWeight}
+                            onChange={(e) => updateArticle(index, 'netWeight', e.target.value)}
+                            className="w-full px-2 py-1 border border-gray-300 rounded"
+                          />
+                        </td>
+                        <td className="border-2 border-gray-800 px-2 py-2">
+                          <input
+                            type="number"
+                            value={article.rate}
+                            onChange={(e) => updateArticle(index, 'rate', e.target.value)}
+                            className="w-full px-2 py-1 border border-gray-300 rounded"
+                          />
+                        </td>
+                        <td className="border-2 border-gray-800 px-2 py-2">
+                          <input
+                            type="number"
+                            value={article.pieces}
+                            onChange={(e) => updateArticle(index, 'pieces', e.target.value)}
+                            className="w-full px-2 py-1 border border-gray-300 rounded"
+                          />
+                        </td>
+                        <td className="border-2 border-gray-800 px-2 py-2 font-bold text-right">
+                          {article.value || '0.00'}
+                        </td>
+                        <td className="border-2 border-gray-800 px-2 py-2 text-center">
+                          {articles.length > 1 && (
+                            <button
+                              onClick={() => removeArticle(index)}
+                              className="text-red-600 hover:text-red-800 font-bold"
+                            >
+                              ✕
+                            </button>
+                          )}
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                  <tfoot>
+                    <tr className="bg-yellow-100">
+                      <td colSpan="7" className="border-2 border-gray-800 px-4 py-2 text-right font-bold">
+                        TOTAL VALUE:
+                      </td>
+                      <td className="border-2 border-gray-800 px-4 py-2 font-bold text-right text-lg">
+                        ₹{calculateTotalValue()}
+                      </td>
+                      <td className="border-2 border-gray-800"></td>
+                    </tr>
+                  </tfoot>
+                </table>
+              </div>
+
+              <button
+                onClick={addArticle}
+                className="mt-4 px-6 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition font-semibold"
+              >
+                + Add Another Article
+              </button>
+            </div>
+
+            {/* Signatures */}
+            <div className="bg-white border-2 border-gray-800 rounded-lg p-6 mb-6">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <div>
+                  <label className="block text-sm font-bold text-gray-800 mb-2">Signature of P.B. or His Agent (Optional)</label>
+                  <div className="border-2 border-dashed border-gray-400 rounded-lg p-8 text-center bg-gray-50">
+                    <p className="text-gray-500 text-sm">Digital signature pad or upload image</p>
+                  </div>
+                </div>
+                <div>
+                  <label className="block text-sm font-bold text-gray-800 mb-2">Signature / LTI of Pawner (Optional)</label>
+                  <div className="border-2 border-dashed border-gray-400 rounded-lg p-8 text-center bg-gray-50">
+                    <p className="text-gray-500 text-sm">Customer signature or thumbprint</p>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            {/* Declaration */}
+            <div className="bg-blue-50 border-2 border-blue-800 rounded-lg p-4 mb-6">
+              <p className="text-sm text-gray-800 text-center">
+                <strong>I declare that the articles are my own.</strong> The statement is true to the best of my knowledge & belief.
+              </p>
+            </div>
+
+            {/* Submit Button */}
+            <div className="flex justify-center gap-4">
+              <button
+                onClick={handleSubmit}
+                className="px-12 py-4 bg-gradient-to-r from-green-600 to-green-700 text-white rounded-lg hover:from-green-700 hover:to-green-800 transition font-bold text-lg shadow-lg"
+              >
+                Create Loan & Save
+              </button>
+              <button
+                onClick={downloadLoanReceipt}
+                className="px-12 py-4 bg-gradient-to-r from-blue-600 to-blue-700 text-white rounded-lg hover:from-blue-700 hover:to-blue-800 transition font-bold text-lg shadow-lg flex items-center gap-2"
+              >
+                <FileText className="w-5 h-5" />
+                Download Receipt PDF
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+    );
+
+    return (
+      <div className="min-h-screen bg-gray-50 p-4 md:p-8">
+        <div className="max-w-6xl mx-auto">
+          {/* Header */}
+          <div className="bg-white rounded-t-xl shadow-lg p-6 border-b-2 border-yellow-500">
+            <div className="flex justify-between items-center">
+              <div>
+                <h2 className="text-3xl font-bold text-gray-800 mb-2">New Loan Entry</h2>
+                <p className="text-gray-600">Gold/Silver Pawn Loan Registration</p>
+              </div>
+              <button
+                onClick={() => setCurrentView('dashboard')}
+                className="px-6 py-2 bg-gray-200 rounded-lg hover:bg-gray-300 transition"
+              >
+                Back to Dashboard
+              </button>
+            </div>
+          </div>
+
+          {/* Form Body - Pink background like the ticket */}
+          <div className="bg-pink-100 shadow-lg p-8">
+            {/* Receipt Number and Date */}
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
+              <div>
+                <label className="block text-sm font-bold text-gray-800 mb-2">Customer ID / Receipt No.</label>
+                <input
+                  type="text"
+                  value={loanForm.customerId}
+                  onChange={(e) => setLoanForm({...loanForm, customerId: e.target.value})}
+                  className="w-full px-4 py-3 border-2 border-gray-800 rounded-lg focus:ring-2 focus:ring-yellow-500 bg-white"
+                  placeholder="Enter Customer ID"
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-bold text-gray-800 mb-2">Date</label>
+                <input
+                  type="date"
+                  value={loanForm.date}
+                  onChange={(e) => setLoanForm({...loanForm, date: e.target.value})}
+                  className="w-full px-4 py-3 border-2 border-gray-800 rounded-lg focus:ring-2 focus:ring-yellow-500 bg-white"
+                />
+              </div>
+            </div>
+
+            {/* Customer Details */}
+            <div className="bg-white border-2 border-gray-800 rounded-lg p-6 mb-6">
+              <h3 className="text-lg font-bold text-gray-800 mb-4 uppercase">Name of Pawner</h3>
+              
+              <div className="grid grid-cols-1 gap-4 mb-4">
+                <div>
+                  <label className="block text-sm font-bold text-gray-800 mb-2">Full Name</label>
+                  <input
+                    type="text"
+                    value={loanForm.name}
+                    onChange={(e) => setLoanForm({...loanForm, name: e.target.value})}
+                    className="w-full px-4 py-3 border-2 border-gray-800 rounded-lg focus:ring-2 focus:ring-yellow-500"
+                    placeholder="Enter customer name"
+                  />
+                </div>
+              </div>
+
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
+                <div>
+                  <label className="block text-sm font-bold text-gray-800 mb-2">S/o, W/o, D/o, C/o</label>
+                  <select
+                    value={loanForm.relation}
+                    onChange={(e) => setLoanForm({...loanForm, relation: e.target.value})}
+                    className="w-full px-4 py-3 border-2 border-gray-800 rounded-lg focus:ring-2 focus:ring-yellow-500"
+                  >
+                    <option value="S/o">S/o (Son of)</option>
+                    <option value="W/o">W/o (Wife of)</option>
+                    <option value="D/o">D/o (Daughter of)</option>
+                    <option value="C/o">C/o (Care of)</option>
+                  </select>
+                </div>
+                <div className="md:col-span-2">
+                  <label className="block text-sm font-bold text-gray-800 mb-2">Relation Name</label>
+                  <input
+                    type="text"
+                    value={loanForm.relationName}
+                    onChange={(e) => setLoanForm({...loanForm, relationName: e.target.value})}
+                    className="w-full px-4 py-3 border-2 border-gray-800 rounded-lg focus:ring-2 focus:ring-yellow-500"
+                    placeholder="Enter father's/husband's name"
+                  />
+                </div>
+              </div>
+
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
+                <div>
+                  <label className="block text-sm font-bold text-gray-800 mb-2">Income (ಆದಾಯ)</label>
+                  <input
+                    type="text"
+                    value={loanForm.income}
+                    onChange={(e) => setLoanForm({...loanForm, income: e.target.value})}
+                    className="w-full px-4 py-3 border-2 border-gray-800 rounded-lg focus:ring-2 focus:ring-yellow-500"
+                    placeholder="Enter income"
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-bold text-gray-800 mb-2">Mobile Number</label>
+                  <input
+                    type="tel"
+                    value={loanForm.mobile}
+                    onChange={(e) => setLoanForm({...loanForm, mobile: e.target.value})}
+                    className="w-full px-4 py-3 border-2 border-gray-800 rounded-lg focus:ring-2 focus:ring-yellow-500"
+                    placeholder="Enter mobile number"
+                  />
+                </div>
+              </div>
+
+              <div className="mb-4">
+                <label className="block text-sm font-bold text-gray-800 mb-2">Address</label>
+                <textarea
+                  value={loanForm.address}
+                  onChange={(e) => setLoanForm({...loanForm, address: e.target.value})}
+                  className="w-full px-4 py-3 border-2 border-gray-800 rounded-lg focus:ring-2 focus:ring-yellow-500"
+                  rows="2"
+                  placeholder="Enter complete address"
+                />
+              </div>
+
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
+                <div>
+                  <label className="block text-sm font-bold text-gray-800 mb-2">POST</label>
+                  <input
+                    type="text"
+                    value={loanForm.post}
+                    onChange={(e) => setLoanForm({...loanForm, post: e.target.value})}
+                    className="w-full px-4 py-3 border-2 border-gray-800 rounded-lg focus:ring-2 focus:ring-yellow-500"
+                    placeholder="Post Office"
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-bold text-gray-800 mb-2">HOBLI</label>
+                  <input
+                    type="text"
+                    value={loanForm.hobli}
+                    onChange={(e) => setLoanForm({...loanForm, hobli: e.target.value})}
+                    className="w-full px-4 py-3 border-2 border-gray-800 rounded-lg focus:ring-2 focus:ring-yellow-500"
+                    placeholder="Hobli"
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-bold text-gray-800 mb-2">TALUK</label>
+                  <input
+                    type="text"
+                    value={loanForm.taluk}
+                    onChange={(e) => setLoanForm({...loanForm, taluk: e.target.value})}
+                    className="w-full px-4 py-3 border-2 border-gray-800 rounded-lg focus:ring-2 focus:ring-yellow-500"
+                    placeholder="Taluk"
+                  />
+                </div>
+              </div>
+
+              <div>
+                <label className="block text-sm font-bold text-gray-800 mb-2">Aadhaar Card Number</label>
+                <input
+                  type="text"
+                  value={loanForm.aadhaar}
+                  onChange={(e) => setLoanForm({...loanForm, aadhaar: e.target.value})}
+                  className="w-full px-4 py-3 border-2 border-gray-800 rounded-lg focus:ring-2 focus:ring-yellow-500"
+                  placeholder="Enter 12-digit Aadhaar number"
+                  maxLength="12"
+                />
+              </div>
+            </div>
+
+            {/* Loan Purpose */}
+            <div className="bg-white border-2 border-gray-800 rounded-lg p-6 mb-6">
+              <label className="block text-sm font-bold text-gray-800 mb-2">ಸಾಲದ ಉದ್ದೇಶ Loan Purpose</label>
+              <input
+                type="text"
+                value={loanForm.loanPurpose}
+                onChange={(e) => setLoanForm({...loanForm, loanPurpose: e.target.value})}
+                className="w-full px-4 py-3 border-2 border-gray-800 rounded-lg focus:ring-2 focus:ring-yellow-500"
+                placeholder="Enter loan purpose"
+              />
+            </div>
+
+            {/* Loan Amount */}
+            <div className="bg-white border-2 border-gray-800 rounded-lg p-6 mb-6">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-sm font-bold text-gray-800 mb-2">Amount of Loan (Rs.)</label>
+                  <input
+                    type="number"
+                    value={loanForm.loanAmount}
+                    onChange={(e) => setLoanForm({...loanForm, loanAmount: e.target.value})}
+                    className="w-full px-4 py-3 border-2 border-gray-800 rounded-lg focus:ring-2 focus:ring-yellow-500"
+                    placeholder="Enter loan amount"
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-bold text-gray-800 mb-2">RUPEES (In Words)</label>
+                  <div className="w-full px-4 py-3 border-2 border-gray-800 rounded-lg bg-gray-50 text-gray-700 font-semibold">
+                    {loanForm.loanAmount ? numberToWords(parseInt(loanForm.loanAmount)) + ' Rupees Only' : 'Amount in words will appear here'}
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            {/* Interest Rate Notice */}
+            <div className="bg-red-100 border-2 border-red-800 rounded-lg p-4 mb-6">
+              <p className="text-sm font-bold text-red-900 text-center">
+                RATE OF INTEREST FOURTEEN PERCENT. TIME AGREED FOR REDEMPTION 1 YEAR
+              </p>
+            </div>
+
+            {/* Articles Table */}
+            <div className="bg-white border-2 border-gray-800 rounded-lg p-6 mb-6">
+              <div className="flex justify-between items-center mb-4">
+                <h3 className="text-lg font-bold text-gray-800 uppercase">
+                  THE FOLLOWING ARTICLE / ARTICLES IS / ARE PAWNED WITH US - PARTICULARS
+                </h3>
+                <span className="text-sm font-bold text-gray-700">
+                  No. of Articles: {articles.length}
+                </span>
+              </div>
+
+              <div className="overflow-x-auto">
+                <table className="w-full border-collapse">
+                  <thead>
+                    <tr className="bg-gray-200">
+                      <th className="border-2 border-gray-800 px-2 py-2 text-xs font-bold">No.</th>
+                      <th className="border-2 border-gray-800 px-2 py-2 text-xs font-bold">Type</th>
+                      <th className="border-2 border-gray-800 px-2 py-2 text-xs font-bold">Description</th>
+                      <th className="border-2 border-gray-800 px-2 py-2 text-xs font-bold">Gross Wt (g)</th>
+                      <th className="border-2 border-gray-800 px-2 py-2 text-xs font-bold">Net Wt (g)</th>
+                      <th className="border-2 border-gray-800 px-2 py-2 text-xs font-bold">Rate (₹/g)</th>
+                      <th className="border-2 border-gray-800 px-2 py-2 text-xs font-bold">Pieces</th>
+                      <th className="border-2 border-gray-800 px-2 py-2 text-xs font-bold">Value (₹)</th>
+                      <th className="border-2 border-gray-800 px-2 py-2 text-xs font-bold">Action</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {articles.map((article, index) => (
+                      <tr key={index}>
+                        <td className="border-2 border-gray-800 px-2 py-2 text-center font-bold">{index + 1}</td>
+                        <td className="border-2 border-gray-800 px-2 py-2">
+                          <select
+                            value={article.type}
+                            onChange={(e) => updateArticle(index, 'type', e.target.value)}
+                            className="w-full px-2 py-1 border border-gray-300 rounded"
+                          >
+                            <option value="Gold">Gold</option>
+                            <option value="Silver">Silver</option>
+                          </select>
+                        </td>
+                        <td className="border-2 border-gray-800 px-2 py-2">
+                          <input
+                            type="text"
+                            value={article.description}
+                            onChange={(e) => updateArticle(index, 'description', e.target.value)}
+                            className="w-full px-2 py-1 border border-gray-300 rounded"
+                            placeholder="Ring, Chain..."
+                          />
+                        </td>
+                        <td className="border-2 border-gray-800 px-2 py-2">
+                          <input
+                            type="number"
+                            step="0.01"
+                            value={article.grossWeight}
+                            onChange={(e) => updateArticle(index, 'grossWeight', e.target.value)}
+                            className="w-full px-2 py-1 border border-gray-300 rounded"
+                          />
+                        </td>
+                        <td className="border-2 border-gray-800 px-2 py-2">
+                          <input
+                            type="number"
+                            step="0.01"
+                            value={article.netWeight}
+                            onChange={(e) => updateArticle(index, 'netWeight', e.target.value)}
+                            className="w-full px-2 py-1 border border-gray-300 rounded"
+                          />
+                        </td>
+                        <td className="border-2 border-gray-800 px-2 py-2">
+                          <input
+                            type="number"
+                            value={article.rate}
+                            onChange={(e) => updateArticle(index, 'rate', e.target.value)}
+                            className="w-full px-2 py-1 border border-gray-300 rounded"
+                          />
+                        </td>
+                        <td className="border-2 border-gray-800 px-2 py-2">
+                          <input
+                            type="number"
+                            value={article.pieces}
+                            onChange={(e) => updateArticle(index, 'pieces', e.target.value)}
+                            className="w-full px-2 py-1 border border-gray-300 rounded"
+                          />
+                        </td>
+                        <td className="border-2 border-gray-800 px-2 py-2 font-bold text-right">
+                          {article.value || '0.00'}
+                        </td>
+                        <td className="border-2 border-gray-800 px-2 py-2 text-center">
+                          {articles.length > 1 && (
+                            <button
+                              onClick={() => removeArticle(index)}
+                              className="text-red-600 hover:text-red-800 font-bold"
+                            >
+                              ✕
+                            </button>
+                          )}
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                  <tfoot>
+                    <tr className="bg-yellow-100">
+                      <td colSpan="7" className="border-2 border-gray-800 px-4 py-2 text-right font-bold">
+                        TOTAL VALUE:
+                      </td>
+                      <td className="border-2 border-gray-800 px-4 py-2 font-bold text-right text-lg">
+                        ₹{calculateTotalValue()}
+                      </td>
+                      <td className="border-2 border-gray-800"></td>
+                    </tr>
+                  </tfoot>
+                </table>
+              </div>
+
+              <button
+                onClick={addArticle}
+                className="mt-4 px-6 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition font-semibold"
+              >
+                + Add Another Article
+              </button>
+            </div>
+
+            {/* Signatures */}
+            <div className="bg-white border-2 border-gray-800 rounded-lg p-6 mb-6">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <div>
+                  <label className="block text-sm font-bold text-gray-800 mb-2">Signature of P.B. or His Agent (Optional)</label>
+                  <div className="border-2 border-dashed border-gray-400 rounded-lg p-8 text-center bg-gray-50">
+                    <p className="text-gray-500 text-sm">Digital signature pad or upload image</p>
+                  </div>
+                </div>
+                <div>
+                  <label className="block text-sm font-bold text-gray-800 mb-2">Signature / LTI of Pawner (Optional)</label>
+                  <div className="border-2 border-dashed border-gray-400 rounded-lg p-8 text-center bg-gray-50">
+                    <p className="text-gray-500 text-sm">Customer signature or thumbprint</p>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            {/* Declaration */}
+            <div className="bg-blue-50 border-2 border-blue-800 rounded-lg p-4 mb-6">
+              <p className="text-sm text-gray-800 text-center">
+                <strong>I declare that the articles are my own.</strong> The statement is true to the best of my knowledge & belief.
+              </p>
+            </div>
+
+            {/* Submit Button */}
+            <div className="flex justify-center">
+              <button
+                onClick={handleSubmit}
+                className="px-12 py-4 bg-gradient-to-r from-green-600 to-green-700 text-white rounded-lg hover:from-green-700 hover:to-green-800 transition font-bold text-lg shadow-lg"
+              >
+                Create Loan & Save
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+    );
+  };
+
+  const RedeemLoanForm = () => {
+    const [redeemForm, setRedeemForm] = useState({
+      redeemId: '',
+      customerId: '',
+      customerName: '',
+      loanDate: '',
+      redemptionDate: new Date().toISOString().split('T')[0],
+      loanAmount: '',
+      interestAmount: '',
+      totalPayable: '',
+      status: 'PENDING'
+    });
+
+    const calculateInterest = () => {
+      if (!redeemForm.loanDate || !redeemForm.redemptionDate || !redeemForm.loanAmount) return;
+
+      const loanDate = new Date(redeemForm.loanDate);
+      const redeemDate = new Date(redeemForm.redemptionDate);
+      const diffTime = Math.abs(redeemDate - loanDate);
+      const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+
+      const fullMonths = Math.floor(diffDays / 30);
+      const remainingDays = diffDays % 30;
+
+      let interestRate = fullMonths * 2;
+      if (remainingDays >= 15) {
+        interestRate += 2;
+      } else if (remainingDays > 0) {
+        interestRate += 1;
+      }
+
+      const interest = (parseFloat(redeemForm.loanAmount) * interestRate) / 100;
+      const total = parseFloat(redeemForm.loanAmount) + interest;
+
+      setRedeemForm(prev => ({
+        ...prev,
+        interestAmount: interest.toFixed(2),
+        totalPayable: total.toFixed(2)
+      }));
+    };
+
+    const fetchLoanDetails = () => {
+      setRedeemForm(prev => ({
+        ...prev,
+        customerName: 'Rajesh Kumar',
+        loanDate: '2024-02-15',
+        loanAmount: '50000'
+      }));
+      setTimeout(calculateInterest, 100);
+    };
+
+    const handleRedeem = () => {
+      alert(`Loan ${redeemForm.status === 'CLOSED' ? 'closed' : 'marked as pending'} successfully!`);
+      setCurrentView('dashboard');
+    };
+
+    return (
+      <div className="min-h-screen bg-gray-50 p-4 md:p-8">
+        <div className="max-w-5xl mx-auto">
+          <div className="bg-white rounded-t-xl shadow-lg p-6 border-b-2 border-green-500">
+            <div className="flex justify-between items-center">
+              <div>
+                <h2 className="text-3xl font-bold text-gray-800 mb-2">Redeem Loan / Closure</h2>
+                <p className="text-gray-600">Process customer redemption and return gold/silver</p>
+              </div>
+              <button
+                onClick={() => setCurrentView('dashboard')}
+                className="px-6 py-2 bg-gray-200 rounded-lg hover:bg-gray-300 transition"
+              >
+                Back to Dashboard
+              </button>
+            </div>
+          </div>
+
+          <div className="bg-white shadow-lg border-2 border-gray-800 p-8">
+            <div className="text-center mb-6 border-b-2 border-gray-800 pb-4">
+              <h3 className="text-2xl font-bold">BALAJI BANKERS</h3>
+              <p className="text-gray-700">DEVALAPURA, Nagamangala Tq.</p>
+              <p className="text-xl font-bold mt-2">PAWN BROKERS - RECEIPT</p>
+            </div>
+
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
+              <div>
+                <label className="block text-sm font-bold text-gray-800 mb-2">Receipt / Redeem ID No.</label>
+                <input
+                  type="text"
+                  value={redeemForm.redeemId}
+                  onChange={(e) => setRedeemForm({...redeemForm, redeemId: e.target.value})}
+                  className="w-full px-4 py-3 border-2 border-gray-800 rounded-lg focus:ring-2 focus:ring-green-500 text-2xl font-bold text-red-600"
+                  placeholder="3196"
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-bold text-gray-800 mb-2">Date of Redemption</label>
+                <input
+                  type="date"
+                  value={redeemForm.redemptionDate}
+                  onChange={(e) => {
+                    setRedeemForm({...redeemForm, redemptionDate: e.target.value});
+                    setTimeout(calculateInterest, 100);
+                  }}
+                  className="w-full px-4 py-3 border-2 border-gray-800 rounded-lg focus:ring-2 focus:ring-green-500"
+                />
+              </div>
+            </div>
+
+            <div className="bg-yellow-50 border-2 border-yellow-500 rounded-lg p-6 mb-6">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-sm font-bold text-gray-800 mb-2">Customer ID / Pawn No.</label>
+                  <div className="flex gap-2">
+                    <input
+                      type="text"
+                      value={redeemForm.customerId}
+                      onChange={(e) => setRedeemForm({...redeemForm, customerId: e.target.value})}
+                      className="flex-1 px-4 py-3 border-2 border-gray-800 rounded-lg focus:ring-2 focus:ring-green-500"
+                      placeholder="Enter Customer ID"
+                    />
+                    <button
+                      onClick={fetchLoanDetails}
+                      className="px-6 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 font-semibold"
+                    >
+                      Fetch
+                    </button>
+                  </div>
+                </div>
+                <div>
+                  <label className="block text-sm font-bold text-gray-800 mb-2">Received From Sri/Smt.</label>
+                  <input
+                    type="text"
+                    value={redeemForm.customerName}
+                    className="w-full px-4 py-3 border-2 border-gray-800 rounded-lg bg-gray-100"
+                    placeholder="Auto-fetched customer name"
+                    readOnly
+                  />
+                </div>
+              </div>
+            </div>
+
+            <div className="bg-blue-50 border-2 border-blue-800 rounded-lg p-6 mb-6">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-sm font-bold text-gray-800 mb-2">Original Loan Date</label>
+                  <input
+                    type="date"
+                    value={redeemForm.loanDate}
+                    onChange={(e) => {
+                      setRedeemForm({...redeemForm, loanDate: e.target.value});
+                      setTimeout(calculateInterest, 100);
+                    }}
+                    className="w-full px-4 py-3 border-2 border-gray-800 rounded-lg bg-white"
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-bold text-gray-800 mb-2">Duration</label>
+                  <div className="w-full px-4 py-3 border-2 border-gray-800 rounded-lg bg-white font-bold text-blue-700">
+                    {redeemForm.loanDate && redeemForm.redemptionDate ? 
+                      `${Math.ceil((new Date(redeemForm.redemptionDate) - new Date(redeemForm.loanDate)) / (1000 * 60 * 60 * 24))} days` : 
+                      'Select dates'
+                    }
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <div className="border-4 border-gray-800 rounded-lg overflow-hidden mb-6">
+              <table className="w-full">
+                <tbody>
+                  <tr>
+                    <td className="border-2 border-gray-800 px-6 py-4 font-bold bg-gray-100 w-1/2" rowSpan="3">
+                      <div className="text-center">
+                        <p className="text-sm mb-2">Signature of the</p>
+                        <p className="text-sm mb-8">P.B. or their Agent</p>
+                        <div className="border-t-2 border-gray-400 pt-2">
+                          <p className="text-xs text-gray-600">(Digital signature area)</p>
+                        </div>
+                      </div>
+                    </td>
+                    <td className="border-2 border-gray-800 px-6 py-4 font-bold bg-gray-200" colSpan="2">
+                      <div className="flex justify-between">
+                        <span>Rs.</span>
+                        <span>Ps.</span>
+                      </div>
+                    </td>
+                  </tr>
+                  <tr>
+                    <td className="border-2 border-gray-800 px-6 py-4 font-bold">Amount of Loan</td>
+                    <td className="border-2 border-gray-800 px-6 py-4 text-right">
+                      <input
+                        type="number"
+                        value={redeemForm.loanAmount}
+                        onChange={(e) => {
+                          setRedeemForm({...redeemForm, loanAmount: e.target.value});
+                          setTimeout(calculateInterest, 100);
+                        }}
+                        className="w-full px-4 py-2 border-2 border-gray-600 rounded text-right font-bold text-lg"
+                        placeholder="50000"
+                      />
+                    </td>
+                  </tr>
+                  <tr>
+                    <td className="border-2 border-gray-800 px-6 py-4 font-bold">Interest</td>
+                    <td className="border-2 border-gray-800 px-6 py-4 text-right">
+                      <input
+                        type="number"
+                        value={redeemForm.interestAmount}
+                        onChange={(e) => {
+                          setRedeemForm({...redeemForm, interestAmount: e.target.value});
+                          const total = parseFloat(redeemForm.loanAmount || 0) + parseFloat(e.target.value || 0);
+                          setRedeemForm(prev => ({...prev, interestAmount: e.target.value, totalPayable: total.toFixed(2)}));
+                        }}
+                        className="w-full px-4 py-2 border-2 border-gray-600 rounded text-right font-bold text-lg bg-yellow-50"
+                        placeholder="Auto-calculated"
+                      />
+                    </td>
+                  </tr>
+                  <tr>
+                    <td className="border-2 border-gray-800 px-6 py-4 font-bold bg-gray-100" colSpan="2">
+                      <span className="text-xl">TOTAL</span>
+                    </td>
+                    <td className="border-2 border-gray-800 px-6 py-4 text-right bg-green-100">
+                      <div className="text-2xl font-bold text-green-700">
+                        ₹{redeemForm.totalPayable || '0.00'}
+                      </div>
+                    </td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+
+            <div className="bg-purple-50 border-2 border-purple-600 rounded-lg p-6 mb-6">
+              <h4 className="font-bold text-gray-800 mb-3">Interest Calculation Details:</h4>
+              <div className="text-sm text-gray-700 space-y-1">
+                <p>• Interest Rate: <strong>2% per month</strong></p>
+                <p>• Full months: <strong>2%</strong> per month</p>
+                <p>• Days 1-14: <strong>1%</strong> (half month)</p>
+                <p>• Days 15+: <strong>2%</strong> (full month)</p>
+                <p className="mt-2 text-xs text-gray-600 italic">
+                  Note: Interest can be manually edited if needed
+                </p>
+              </div>
+            </div>
+
+            <div className="bg-white border-2 border-gray-800 rounded-lg p-6 mb-6">
+              <label className="block text-sm font-bold text-gray-800 mb-3">Status</label>
+              <div className="flex gap-4">
+                <label className="flex items-center space-x-2 cursor-pointer">
+                  <input
+                    type="radio"
+                    name="status"
+                    value="CLOSED"
+                    checked={redeemForm.status === 'CLOSED'}
+                    onChange={(e) => setRedeemForm({...redeemForm, status: e.target.value})}
+                    className="w-5 h-5"
+                  />
+                  <span className="font-semibold text-green-700">CLOSED (Payment Complete)</span>
+                </label>
+                <label className="flex items-center space-x-2 cursor-pointer">
+                  <input
+                    type="radio"
+                    name="status"
+                    value="PENDING"
+                    checked={redeemForm.status === 'PENDING'}
+                    onChange={(e) => setRedeemForm({...redeemForm, status: e.target.value})}
+                    className="w-5 h-5"
+                  />
+                  <span className="font-semibold text-orange-700">PENDING (Partial Payment)</span>
+                </label>
+              </div>
+            </div>
+
+            <div className="flex justify-center gap-4">
+              <button
+                onClick={handleRedeem}
+                className="px-12 py-4 bg-gradient-to-r from-green-600 to-green-700 text-white rounded-lg hover:from-green-700 hover:to-green-800 transition font-bold text-lg shadow-lg"
+              >
+                Process Redemption
+              </button>
+              <button
+                onClick={() => {
+                  setRedeemForm({
+                    redeemId: '', customerId: '', customerName: '', loanDate: '',
+                    redemptionDate: new Date().toISOString().split('T')[0],
+                    loanAmount: '', interestAmount: '', totalPayable: '', status: 'PENDING'
+                  });
+                }}
+                className="px-12 py-4 bg-gray-500 text-white rounded-lg hover:bg-gray-600 transition font-bold text-lg"
+              >
+                Clear Form
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+    );
+  };
+
+  const AuctionListModule = () => {
+    // Sample auction data - loans over 12 months
+    const [auctionLoans] = useState([
+      {
+        slNo: 1,
+        customerId: 'B2647',
+        date: '2018-10-06',
+        amount: 10000,
+        name: 'Girijamma',
+        relation: 'W/o Thimmaiah',
+        address: 'Arasinagere',
+        articles: 'imp gold Battan F.teps Jumki pair wt.7.300g',
+        status: 'Pending Auction',
+        months: 15
+      },
+      {
+        slNo: 2,
+        customerId: '2659',
+        date: '2018-10-08',
+        amount: 7000,
+        name: 'Chanamma',
+        relation: 'W/o Bhiliyappa',
+        address: 'Devalapura',
+        articles: 'imp gold ring (1) Jumki pair wt.5.100g',
+        status: 'Pending Auction',
+        months: 14
+      },
+      {
+        slNo: 3,
+        customerId: '2672',
+        date: '2018-10-11',
+        amount: 5000,
+        name: 'Laxami Narshimaiah',
+        relation: 'S/o Srikantaiah',
+        address: 'Hadamg',
+        articles: 'imp gold teps & ring wt.4.900g',
+        status: 'Pending Auction',
+        months: 13
+      },
+      {
+        slNo: 4,
+        customerId: '2694',
+        date: '2018-10-13',
+        amount: 8000,
+        name: 'Chickamari',
+        relation: 'S/o Doddaiah',
+        address: 'Sunaganahalli',
+        articles: 'imp gold Muthu teps pair wt.6.300g',
+        status: 'Pending Auction',
+        months: 13
+      },
+      {
+        slNo: 5,
+        customerId: '2743',
+        date: '2018-10-19',
+        amount: 5000,
+        name: 'Venkataramu',
+        relation: 'S/o B.K. Naraynagowda',
+        address: 'Bhimanahalli',
+        articles: 'imp gold Bottons pair (2) wt.3.100g',
+        status: 'Pending Auction',
+        months: 13
+      },
+      {
+        slNo: 6,
+        customerId: '2744',
+        date: '2018-10-19',
+        amount: 6000,
+        name: 'Venkataramu',
+        relation: 'S/o B.K. Narayangowda',
+        address: 'Bhimanahalli',
+        articles: 'imp gold sada ring -1, wt.3.600g',
+        status: 'Pending Auction',
+        months: 13
+      },
+      {
+        slNo: 7,
+        customerId: '2745',
+        date: '2018-10-19',
+        amount: 20000,
+        name: 'Venkatraramu',
+        relation: 'S/o B.K. Narayangowda',
+        address: 'Bhimanahalli',
+        articles: 'imp gold teps & mattal pair (2) wt.10.500g',
+        status: 'Pending Auction',
+        months: 13
+      },
+      {
+        slNo: 8,
+        customerId: '2777',
+        date: '2018-10-25',
+        amount: 7000,
+        name: 'Chickalingaiah',
+        relation: 'S/o Ningegowda',
+        address: 'B.G. Halli',
+        articles: 'imp gold stone teps pair wt.5.800g',
+        status: 'Pending Auction',
+        months: 13
+      },
+      {
+        slNo: 9,
+        customerId: '2800',
+        date: '2018-10-26',
+        amount: 10000,
+        name: 'Laxmikanth',
+        relation: 'S/o Somanna',
+        address: 'Devalapura',
+        articles: 'imp sada teps pair Jumki wt.5.600g',
+        status: 'Pending Auction',
+        months: 13
+      },
+      {
+        slNo: 10,
+        customerId: '2815',
+        date: '2018-10-27',
+        amount: 10000,
+        name: 'Savitha',
+        relation: 'W/o Rajesha',
+        address: 'Taramanakatte',
+        articles: 'imp gold chain & pendant wt.8.200g',
+        status: 'Pending Auction',
+        months: 13
+      },
+      {
+        slNo: 11,
+        customerId: '2820',
+        date: '2018-10-28',
+        amount: 12000,
+        name: 'Manjunath',
+        relation: 'S/o Nagaraju',
+        address: 'Arasinagere',
+        articles: 'imp gold ring & bangles wt.9.100g',
+        status: 'Pending Auction',
+        months: 13
+      },
+      {
+        slNo: 12,
+        customerId: '2835',
+        date: '2018-10-30',
+        amount: 8500,
+        name: 'Lakshmi',
+        relation: 'W/o Krishnappa',
+        address: 'Devalapura',
+        articles: 'imp gold chain wt.6.500g',
+        status: 'Pending Auction',
+        months: 13
+      },
+      {
+        slNo: 13,
+        customerId: '2850',
+        date: '2018-11-02',
+        amount: 15000,
+        name: 'Ravi',
+        relation: 'S/o Mallappa',
+        address: 'Hadamg',
+        articles: 'imp gold necklace wt.11.200g',
+        status: 'Pending Auction',
+        months: 12
+      },
+      {
+        slNo: 14,
+        customerId: '2865',
+        date: '2018-11-05',
+        amount: 9000,
+        name: 'Suma',
+        relation: 'W/o Prakash',
+        address: 'Sunaganahalli',
+        articles: 'imp gold earrings pair wt.7.000g',
+        status: 'Pending Auction',
+        months: 12
+      },
+      {
+        slNo: 15,
+        customerId: '2880',
+        date: '2018-11-08',
+        amount: 11000,
+        name: 'Ramesh',
+        relation: 'S/o Venkatesha',
+        address: 'Bhimanahalli',
+        articles: 'imp gold bracelet wt.8.800g',
+        status: 'Pending Auction',
+        months: 12
+      },
+      {
+        slNo: 16,
+        customerId: '2895',
+        date: '2018-11-10',
+        amount: 7500,
+        name: 'Geetha',
+        relation: 'W/o Suresh',
+        address: 'Devalapura',
+        articles: 'imp gold ring & chain wt.5.900g',
+        status: 'Pending Auction',
+        months: 12
+      },
+      {
+        slNo: 17,
+        customerId: '2910',
+        date: '2018-11-12',
+        amount: 13000,
+        name: 'Nagaraj',
+        relation: 'S/o Hanumanthappa',
+        address: 'Arasinagere',
+        articles: 'imp gold bangle pair wt.10.100g',
+        status: 'Pending Auction',
+        months: 12
+      }
+    ]);
+
+    const [displayedLoans, setDisplayedLoans] = useState(auctionLoans.slice(0, 15));
+    const [selectedLoans, setSelectedLoans] = useState([]);
+
+    const toggleSelectLoan = (slNo) => {
+      if (selectedLoans.includes(slNo)) {
+        setSelectedLoans(selectedLoans.filter(id => id !== slNo));
+      } else {
+        setSelectedLoans([...selectedLoans, slNo]);
+      }
+    };
+
+    const markAsAuctioned = () => {
+      if (selectedLoans.length === 0) {
+        alert('Please select at least one loan to mark as auctioned');
+        return;
+      }
+      alert(`${selectedLoans.length} loan(s) marked as AUCTIONED successfully!`);
+      setSelectedLoans([]);
+    };
+
+    const downloadCSV = () => {
+      // Create CSV content with proper escaping
+      const header = 'SL.NO,Customer ID,Date,Amount,Name,Relation,Address,Articles,Months Overdue,Status\n';
+      const rows = auctionLoans.map(loan => {
+        return [
+          loan.slNo,
+          loan.customerId,
+          loan.date,
+          loan.amount,
+          `"${loan.name}"`,
+          `"${loan.relation}"`,
+          `"${loan.address}"`,
+          `"${loan.articles}"`,
+          loan.months,
+          loan.status
+        ].join(',');
+      }).join('\n');
+
+      const csvContent = header + rows;
+
+      // Create blob and download
+      const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+      const link = document.createElement('a');
+      const url = URL.createObjectURL(blob);
+      
+      link.setAttribute('href', url);
+      link.setAttribute('download', `Auction_List_${new Date().toISOString().split('T')[0]}.csv`);
+      link.style.visibility = 'hidden';
+      
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      
+      alert('CSV file downloaded successfully!');
+    };
+
+    const downloadPDF = () => {
+      // Create a new window with the print-friendly content
+      const printContent = `
+        <!DOCTYPE html>
+        <html>
+        <head>
+          <meta charset="UTF-8">
+          <title>Auction List - ${new Date().toLocaleDateString('en-IN')}</title>
+          <style>
+            * {
+              margin: 0;
+              padding: 0;
+              box-sizing: border-box;
+            }
+            @page {
+              size: A4;
+              margin: 10mm;
+            }
+            body {
+              font-family: 'Courier New', Courier, monospace;
+              padding: 20px;
+              background: white;
+            }
+            .no-print {
+              text-align: center;
+              margin-bottom: 20px;
+              padding: 20px;
+              background: #fee;
+              border: 2px solid #dc2626;
+              border-radius: 8px;
+            }
+            .print-btn {
+              background: #dc2626;
+              color: white;
+              border: none;
+              padding: 12px 24px;
+              font-size: 16px;
+              font-weight: bold;
+              cursor: pointer;
+              border-radius: 6px;
+              margin-right: 10px;
+            }
+            .print-btn:hover {
+              background: #b91c1c;
+            }
+            .close-btn {
+              background: #6b7280;
+              color: white;
+              border: none;
+              padding: 12px 24px;
+              font-size: 16px;
+              font-weight: bold;
+              cursor: pointer;
+              border-radius: 6px;
+            }
+            .close-btn:hover {
+              background: #4b5563;
+            }
+            @media print {
+              .no-print {
+                display: none !important;
+              }
+              body {
+                padding: 0;
+              }
+            }
+            .header {
+              text-align: center;
+              border-bottom: 3px solid #000;
+              padding-bottom: 12px;
+              margin-bottom: 20px;
+            }
+            .series {
+              font-size: 11pt;
+              margin-bottom: 8px;
+              font-weight: bold;
+            }
+            .company {
+              font-size: 16pt;
+              font-weight: bold;
+              margin: 8px 0;
+              letter-spacing: 1px;
+            }
+            .subtitle {
+              font-size: 11pt;
+              margin-top: 8px;
+            }
+            table {
+              width: 100%;
+              border-collapse: collapse;
+              margin: 20px 0;
+            }
+            th {
+              background: #f3f4f6;
+              border: 2px solid #000;
+              padding: 10px 6px;
+              font-weight: bold;
+              font-size: 10pt;
+              text-align: center;
+              line-height: 1.3;
+            }
+            td {
+              border: 1px solid #000;
+              padding: 8px 6px;
+              font-size: 9pt;
+              vertical-align: top;
+            }
+            .sl-col { width: 5%; text-align: center; }
+            .ft-col { width: 8%; text-align: center; }
+            .date-col { width: 10%; text-align: center; }
+            .amt-col { width: 10%; text-align: right; }
+            .detail-col { width: 67%; }
+            .detail-col strong {
+              font-weight: bold;
+            }
+            .row-odd {
+              background: #f9fafb;
+            }
+            .footer {
+              margin-top: 30px;
+              padding-top: 15px;
+              border-top: 2px solid #000;
+              text-align: center;
+              font-size: 10pt;
+            }
+            .footer-stats {
+              display: flex;
+              justify-content: space-around;
+              margin-bottom: 10px;
+              font-weight: bold;
+            }
+            .timestamp {
+              font-size: 8pt;
+              color: #666;
+              margin-top: 10px;
+            }
+          </style>
+        </head>
+        <body>
+          <div class="no-print">
+            <h2 style="margin-bottom: 15px; color: #dc2626;">📄 Auction List - Ready to Print</h2>
+            <p style="margin-bottom: 15px; color: #374151;">Click the button below to print or save as PDF</p>
+            <button class="print-btn" onclick="window.print()">🖨️ Print / Save as PDF</button>
+            <button class="close-btn" onclick="window.close()">✕ Close Window</button>
+          </div>
+
+          <div class="header">
+            <div class="series">Series: I</div>
+            <div class="company">BALAJI BANKERS & JEWELLERS</div>
+            <div class="company">DEVALAPURA, NAGAMANGALA TALUK</div>
+            <div class="subtitle">AUCTION LIST</div>
+            <div class="subtitle">Date: ${new Date().toLocaleDateString('en-IN', { day: '2-digit', month: '2-digit', year: 'numeric' })}</div>
+          </div>
+
+          <table>
+            <thead>
+              <tr>
+                <th class="sl-col">SL.<br/>NO.</th>
+                <th class="ft-col">F.T.<br/>NO.</th>
+                <th class="date-col">Date</th>
+                <th class="amt-col">Amount</th>
+                <th class="detail-col">Name & Address & Articles</th>
+              </tr>
+            </thead>
+            <tbody>
+              ${auctionLoans.map((loan, index) => `
+                <tr class="${index % 2 === 0 ? 'row-odd' : ''}">
+                  <td class="sl-col"><strong>${String(loan.slNo).padStart(2, '0')}.</strong></td>
+                  <td class="ft-col"><strong>${loan.customerId}</strong></td>
+                  <td class="date-col">${loan.date.split('-').reverse().join('-')}</td>
+                  <td class="amt-col"><strong>${loan.amount}/-</strong></td>
+                  <td class="detail-col">
+                    <strong>${loan.name}</strong> ${loan.relation}, ${loan.address}, ${loan.articles}
+                  </td>
+                </tr>
+              `).join('')}
+            </tbody>
+          </table>
+
+          <div class="footer">
+            <div class="footer-stats">
+              <div>Total Loans: <strong>${auctionLoans.length}</strong></div>
+              <div>Total Amount: <strong>₹${auctionLoans.reduce((sum, loan) => sum + loan.amount, 0).toLocaleString('en-IN')}</strong></div>
+            </div>
+            <div class="timestamp">
+              Generated on: ${new Date().toLocaleString('en-IN', { 
+                day: '2-digit', 
+                month: 'short', 
+                year: 'numeric', 
+                hour: '2-digit', 
+                minute: '2-digit',
+                hour12: true 
+              })}
+            </div>
+          </div>
+        </body>
+        </html>
+      `;
+
+      // Open new window and write content
+      const printWindow = window.open('', '_blank', 'width=900,height=800');
+      
+      if (printWindow) {
+        printWindow.document.open();
+        printWindow.document.write(printContent);
+        printWindow.document.close();
+        
+        // Wait for content to load before showing
+        printWindow.onload = () => {
+          printWindow.focus();
+        };
+      } else {
+        alert('Please allow pop-ups to download the PDF. Check your browser settings.');
+      }
+    };
+
+    return (
+      <div className="min-h-screen bg-gray-50 p-4 md:p-8">
+        <div className="max-w-7xl mx-auto">
+          {/* Header */}
+          <div className="bg-white rounded-t-xl shadow-lg p-6 border-b-2 border-red-500">
+            <div className="flex justify-between items-center">
+              <div>
+                <h2 className="text-3xl font-bold text-gray-800 mb-2">Auction List</h2>
+                <p className="text-gray-600">Loans over 12 months - Eligible for Auction</p>
+              </div>
+              <button
+                onClick={() => setCurrentView('dashboard')}
+                className="px-6 py-2 bg-gray-200 rounded-lg hover:bg-gray-300 transition"
+              >
+                Back to Dashboard
+              </button>
+            </div>
+          </div>
+
+          {/* Stats Bar */}
+          <div className="bg-gradient-to-r from-red-500 to-red-600 text-white p-6 shadow-lg">
+            <div className="flex flex-wrap justify-between items-center gap-4">
+              <div>
+                <p className="text-sm opacity-90">Total Auction Eligible</p>
+                <p className="text-3xl font-bold">{auctionLoans.length} Loans</p>
+              </div>
+              <div>
+                <p className="text-sm opacity-90">Total Amount</p>
+                <p className="text-3xl font-bold">₹{auctionLoans.reduce((sum, loan) => sum + loan.amount, 0).toLocaleString()}</p>
+              </div>
+              <div>
+                <p className="text-sm opacity-90">Displaying</p>
+                <p className="text-3xl font-bold">Top 15 Records</p>
+              </div>
+              <div className="flex gap-3">
+                <button
+                  onClick={downloadPDF}
+                  className="px-6 py-3 bg-white text-red-600 rounded-lg hover:bg-gray-100 transition font-bold flex items-center gap-2 border-2 border-red-600"
+                >
+                  <FileText className="w-5 h-5" />
+                  Download PDF
+                </button>
+                <button
+                  onClick={downloadCSV}
+                  className="px-6 py-3 bg-white text-green-600 rounded-lg hover:bg-gray-100 transition font-bold flex items-center gap-2 border-2 border-green-600"
+                >
+                  <FileText className="w-5 h-5" />
+                  Download CSV
+                </button>
+                <button
+                  onClick={markAsAuctioned}
+                  className="px-6 py-3 bg-yellow-400 text-gray-900 rounded-lg hover:bg-yellow-500 transition font-bold"
+                >
+                  Mark as Auctioned ({selectedLoans.length})
+                </button>
+              </div>
+            </div>
+          </div>
+
+          {/* Auction Ledger - Styled like the image */}
+          <div className="bg-white shadow-lg">
+            {/* Header like the image */}
+            <div className="border-b-2 border-gray-800 p-4 text-center">
+              <p className="text-sm font-mono">Series: I</p>
+              <h3 className="text-xl font-bold mt-1">BALAJI BANKERS & JEWELLERS, DEVALAPURA, NAGAMANGALA TALUK</h3>
+            </div>
+
+            {/* Table */}
+            <div className="overflow-x-auto">
+              <table className="w-full border-collapse">
+                <thead>
+                  <tr className="bg-gray-100 border-b-2 border-gray-800">
+                    <th className="border-r border-gray-400 px-2 py-3 text-xs font-bold text-left">
+                      <input
+                        type="checkbox"
+                        onChange={(e) => {
+                          if (e.target.checked) {
+                            setSelectedLoans(displayedLoans.map(l => l.slNo));
+                          } else {
+                            setSelectedLoans([]);
+                          }
+                        }}
+                        className="mr-2"
+                      />
+                      SELECT
+                    </th>
+                    <th className="border-r border-gray-400 px-3 py-3 text-xs font-bold">SL.<br/>NO.</th>
+                    <th className="border-r border-gray-400 px-3 py-3 text-xs font-bold">F.T.<br/>NO.</th>
+                    <th className="border-r border-gray-400 px-3 py-3 text-xs font-bold">Date</th>
+                    <th className="border-r border-gray-400 px-3 py-3 text-xs font-bold">Amount</th>
+                    <th className="px-3 py-3 text-xs font-bold text-left">Name & Address & Articles</th>
+                  </tr>
+                </thead>
+                <tbody className="font-mono text-sm">
+                  {displayedLoans.map((loan, index) => (
+                    <tr 
+                      key={loan.slNo} 
+                      className={`border-b border-gray-300 ${selectedLoans.includes(loan.slNo) ? 'bg-yellow-50' : index % 2 === 0 ? 'bg-gray-50' : 'bg-white'} hover:bg-blue-50 transition`}
+                    >
+                      <td className="border-r border-gray-400 px-2 py-3 text-center">
+                        <input
+                          type="checkbox"
+                          checked={selectedLoans.includes(loan.slNo)}
+                          onChange={() => toggleSelectLoan(loan.slNo)}
+                          className="w-4 h-4"
+                        />
+                      </td>
+                      <td className="border-r border-gray-400 px-3 py-3 text-center font-bold">
+                        {String(loan.slNo).padStart(2, '0')}.
+                      </td>
+                      <td className="border-r border-gray-400 px-3 py-3 text-center font-bold">
+                        {loan.customerId}
+                      </td>
+                      <td className="border-r border-gray-400 px-3 py-3 text-center whitespace-nowrap">
+                        {loan.date.split('-').reverse().join('-')}
+                      </td>
+                      <td className="border-r border-gray-400 px-3 py-3 text-right font-bold">
+                        {loan.amount}/-
+                      </td>
+                      <td className="px-3 py-3">
+                        <div className="text-xs leading-tight">
+                          <p className="font-semibold">{loan.name} {loan.relation}, {loan.address},</p>
+                          <p className="text-gray-700">{loan.articles}</p>
+                        </div>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+
+            {/* Footer info */}
+            {auctionLoans.length > 15 && (
+              <div className="bg-yellow-50 border-t-2 border-yellow-500 p-4 text-center">
+                <p className="text-sm font-semibold text-gray-700">
+                  Showing top 15 of {auctionLoans.length} total auction-eligible loans. 
+                  <button 
+                    onClick={downloadPDF}
+                    className="ml-2 text-blue-600 hover:text-blue-800 underline font-bold"
+                  >
+                    Download PDF with all records
+                  </button>
+                </p>
+              </div>
+            )}
+
+            {/* Action buttons at bottom */}
+            <div className="p-6 bg-gray-50 border-t-2 border-gray-300 flex justify-between items-center">
+              <div className="text-sm text-gray-600">
+                <p className="font-bold">Selected: {selectedLoans.length} loan(s)</p>
+                <p className="text-xs mt-1">Check boxes to select loans for auction</p>
+              </div>
+              <button
+                onClick={markAsAuctioned}
+                disabled={selectedLoans.length === 0}
+                className={`px-8 py-3 rounded-lg font-bold text-lg transition ${
+                  selectedLoans.length > 0 
+                    ? 'bg-red-600 hover:bg-red-700 text-white' 
+                    : 'bg-gray-300 text-gray-500 cursor-not-allowed'
+                }`}
+              >
+                Mark Selected as Auctioned
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+    );
+  };
+
+  const AnalyticsAuthScreen = () => {
+    const [captchaInput, setCaptchaInput] = useState('');
+    const [otpInput, setOtpInput] = useState('');
+    const [captchaCode, setCaptchaCode] = useState('');
+    const [generatedOTP, setGeneratedOTP] = useState('');
+    const [step, setStep] = useState(1); // 1 = CAPTCHA, 2 = OTP
+    const phoneNumber = '9353545650'; // Fixed phone number - won't change
+
+    // Generate random CAPTCHA
+    const generateCaptcha = () => {
+      const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
+      let captcha = '';
+      for (let i = 0; i < 6; i++) {
+        captcha += chars.charAt(Math.floor(Math.random() * chars.length));
+      }
+      setCaptchaCode(captcha);
+    };
+
+    // Generate and send OTP
+    const generateOTP = () => {
+      const otp = Math.floor(100000 + Math.random() * 900000).toString();
+      setGeneratedOTP(otp);
+      console.log('Generated OTP:', otp); // Debug log
+      alert(`OTP sent to ${phoneNumber}: ${otp}\n(In production, this would be sent via SMS)`);
+    };
+
+    // Initialize CAPTCHA on mount - FIXED
+    useEffect(() => {
+      generateCaptcha();
+    }, []); // Empty dependency array - runs only once
+
+    const handleCaptchaSubmit = (e) => {
+      e.preventDefault();
+      console.log('CAPTCHA Input:', captchaInput, 'Expected:', captchaCode); // Debug
+      if (captchaInput.toUpperCase() === captchaCode) {
+        generateOTP();
+        setStep(2);
+        setCaptchaInput('');
+      } else {
+        alert('Incorrect CAPTCHA! Please try again.');
+        generateCaptcha();
+        setCaptchaInput('');
+      }
+    };
+
+    const handleOTPSubmit = (e) => {
+      e.preventDefault();
+      console.log('OTP Input:', otpInput, 'Expected:', generatedOTP); // Debug
+      if (otpInput === generatedOTP) {
+        console.log('OTP Verified! Accessing Analytics...'); // Debug
+        setIsAnalyticsAuthenticated(true);
+        setCurrentView('analytics');
+      } else {
+        alert('Incorrect OTP! Please try again.\nYou entered: ' + otpInput + '\nExpected: ' + generatedOTP);
+        setOtpInput('');
+      }
+    };
+
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-purple-50 to-indigo-100 flex items-center justify-center p-4">
+        <div className="bg-white rounded-2xl shadow-2xl w-full max-w-md p-8">
+          <div className="text-center mb-8">
+            <div className="w-16 h-16 bg-purple-500 rounded-full flex items-center justify-center mx-auto mb-4">
+              <TrendingUp className="w-8 h-8 text-white" />
+            </div>
+            <h1 className="text-3xl font-bold text-gray-800">Analytics Authentication</h1>
+            <p className="text-gray-600 mt-2">Secure access to financial data</p>
+          </div>
+
+          {step === 1 ? (
+            /* CAPTCHA Step */
+            <div className="space-y-6">
+              <div>
+                <label className="block text-sm font-bold text-gray-800 mb-3">Step 1: Verify CAPTCHA</label>
+                
+                {/* CAPTCHA Display */}
+                <div className="bg-gradient-to-r from-gray-200 to-gray-300 rounded-lg p-6 mb-4 relative overflow-hidden">
+                  <div className="absolute inset-0 opacity-10">
+                    <div className="absolute top-0 left-0 w-full h-1 bg-purple-500"></div>
+                    <div className="absolute bottom-0 right-0 w-full h-1 bg-indigo-500"></div>
+                    <div className="absolute top-0 left-0 w-1 h-full bg-pink-500"></div>
+                    <div className="absolute top-0 right-0 w-1 h-full bg-blue-500"></div>
+                  </div>
+                  <p className="text-4xl font-bold text-center tracking-widest text-gray-800 select-none" style={{
+                    fontFamily: 'monospace',
+                    textShadow: '2px 2px 4px rgba(0,0,0,0.3)',
+                    letterSpacing: '8px',
+                    transform: 'skew(-5deg)'
+                  }}>
+                    {captchaCode}
+                  </p>
+                </div>
+
+                <button
+                  onClick={generateCaptcha}
+                  className="w-full mb-4 px-4 py-2 bg-gray-200 text-gray-700 rounded-lg hover:bg-gray-300 transition font-semibold text-sm"
+                >
+                  🔄 Refresh CAPTCHA
+                </button>
+
+                <input
+                  type="text"
+                  value={captchaInput}
+                  onChange={(e) => setCaptchaInput(e.target.value)}
+                  className="w-full px-4 py-3 border-2 border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent text-center text-lg font-semibold uppercase tracking-widest"
+                  placeholder="Enter CAPTCHA"
+                  maxLength="6"
+                />
+              </div>
+
+              <button
+                onClick={handleCaptchaSubmit}
+                disabled={captchaInput.length !== 6}
+                className={`w-full py-3 rounded-lg font-bold text-lg transition ${
+                  captchaInput.length === 6
+                    ? 'bg-purple-500 hover:bg-purple-600 text-white'
+                    : 'bg-gray-300 text-gray-500 cursor-not-allowed'
+                }`}
+              >
+                Verify CAPTCHA & Send OTP
+              </button>
+
+              <button
+                onClick={() => setCurrentView('dashboard')}
+                className="w-full py-2 text-gray-600 hover:text-gray-800 font-medium"
+              >
+                ← Back to Dashboard
+              </button>
+            </div>
+          ) : (
+            /* OTP Step */
+            <div className="space-y-6">
+              <div>
+                <label className="block text-sm font-bold text-gray-800 mb-3">Step 2: Enter OTP</label>
+                
+                <div className="bg-green-50 border-2 border-green-200 rounded-lg p-4 mb-4">
+                  <p className="text-sm text-green-800">
+                    ✅ CAPTCHA verified successfully!
+                  </p>
+                  <p className="text-sm text-green-700 mt-2">
+                    📱 OTP sent to: <strong>{phoneNumber.replace(/(\d{3})(\d{3})(\d{4})/, '$1-***-$3')}</strong>
+                  </p>
+                  <div className="mt-3 p-3 bg-yellow-100 border-2 border-yellow-400 rounded-lg">
+                    <p className="text-xs text-yellow-800 font-semibold mb-1">🔑 Your OTP (for demo):</p>
+                    <p className="text-2xl font-bold text-center text-yellow-900 tracking-widest">{generatedOTP}</p>
+                    <p className="text-xs text-yellow-700 mt-2 text-center">Copy this 6-digit code below</p>
+                  </div>
+                </div>
+
+                <input
+                  type="text"
+                  value={otpInput}
+                  onChange={(e) => setOtpInput(e.target.value.replace(/\D/g, ''))}
+                  className="w-full px-4 py-3 border-2 border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent text-center text-2xl font-bold tracking-widest"
+                  placeholder="000000"
+                  maxLength="6"
+                />
+              </div>
+
+              <button
+                onClick={handleOTPSubmit}
+                disabled={otpInput.length !== 6}
+                className={`w-full py-3 rounded-lg font-bold text-lg transition ${
+                  otpInput.length === 6
+                    ? 'bg-purple-500 hover:bg-purple-600 text-white'
+                    : 'bg-gray-300 text-gray-500 cursor-not-allowed'
+                }`}
+              >
+                Verify OTP & Access Analytics
+              </button>
+
+              <button
+                onClick={generateOTP}
+                className="w-full py-2 text-purple-600 hover:text-purple-800 font-medium"
+              >
+                🔄 Resend OTP
+              </button>
+
+              <button
+                onClick={() => {
+                  setStep(1);
+                  setCaptchaInput('');
+                  setOtpInput('');
+                  generateCaptcha();
+                }}
+                className="w-full py-2 text-gray-600 hover:text-gray-800 font-medium"
+              >
+                ← Back to CAPTCHA
+              </button>
+            </div>
+          )}
+
+          <div className="mt-6 p-4 bg-blue-50 border border-blue-200 rounded-lg">
+            <p className="text-xs text-blue-800 text-center">
+              🔒 This is a secure section. Both CAPTCHA and OTP verification are required to access financial analytics.
+            </p>
+          </div>
+        </div>
+      </div>
+    );
+  };
+
+  const AnalyticsDashboard = () => {
+    return (
+      <div className="min-h-screen bg-gray-50 p-4 md:p-8">
+        <div className="max-w-7xl mx-auto">
+          {/* Header */}
+          <div className="bg-gradient-to-r from-indigo-500 to-purple-600 rounded-t-xl shadow-lg p-6 text-white">
+            <div className="flex justify-between items-center">
+              <div>
+                <h2 className="text-3xl font-bold flex items-center mb-2">
+                  <TrendingUp className="w-8 h-8 mr-3" />
+                  Analytics Dashboard
+                </h2>
+                <p className="text-indigo-100">Monthly performance metrics and insights</p>
+              </div>
+              <button
+                onClick={() => {
+                  setIsAnalyticsAuthenticated(false);
+                  setCurrentView('dashboard');
+                }}
+                className="px-6 py-2 bg-white text-purple-600 rounded-lg hover:bg-gray-100 transition font-semibold"
+              >
+                Back to Dashboard
+              </button>
+            </div>
+          </div>
+
+          <div className="bg-white rounded-b-xl shadow-lg p-8">
+            {/* Monthly Stats Grid */}
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
+              {/* Total Loans Given by Month */}
+              <div className="bg-gradient-to-br from-blue-50 to-blue-100 rounded-xl p-6 border-2 border-blue-200">
+                <div className="flex items-center justify-between mb-3">
+                  <div className="w-12 h-12 bg-blue-500 rounded-lg flex items-center justify-center">
+                    <DollarSign className="w-6 h-6 text-white" />
+                  </div>
+                  <span className="text-xs bg-blue-200 text-blue-800 px-2 py-1 rounded-full font-semibold">Monthly</span>
+                </div>
+                <h4 className="text-sm font-semibold text-blue-900 mb-2">Total Loans Given</h4>
+                <p className="text-3xl font-bold text-blue-700 mb-1">₹12.5L</p>
+                <p className="text-xs text-blue-600">This month: Nov 2024</p>
+              </div>
+
+              {/* Interest Collected */}
+              <div className="bg-gradient-to-br from-green-50 to-green-100 rounded-xl p-6 border-2 border-green-200">
+                <div className="flex items-center justify-between mb-3">
+                  <div className="w-12 h-12 bg-green-500 rounded-lg flex items-center justify-center">
+                    <TrendingUp className="w-6 h-6 text-white" />
+                  </div>
+                  <span className="text-xs bg-green-200 text-green-800 px-2 py-1 rounded-full font-semibold">Monthly</span>
+                </div>
+                <h4 className="text-sm font-semibold text-green-900 mb-2">Interest Collected</h4>
+                <p className="text-3xl font-bold text-green-700 mb-1">₹2.8L</p>
+                <p className="text-xs text-green-600">This month: Nov 2024</p>
+              </div>
+
+              {/* Closed Loan Amount */}
+              <div className="bg-gradient-to-br from-orange-50 to-orange-100 rounded-xl p-6 border-2 border-orange-200">
+                <div className="flex items-center justify-between mb-3">
+                  <div className="w-12 h-12 bg-orange-500 rounded-lg flex items-center justify-center">
+                    <Package className="w-6 h-6 text-white" />
+                  </div>
+                  <span className="text-xs bg-orange-200 text-orange-800 px-2 py-1 rounded-full font-semibold">Monthly</span>
+                </div>
+                <h4 className="text-sm font-semibold text-orange-900 mb-2">Closed Loan Amount</h4>
+                <p className="text-3xl font-bold text-orange-700 mb-1">₹8.2L</p>
+                <p className="text-xs text-orange-600">This month: Nov 2024</p>
+              </div>
+
+              {/* Total Revenue */}
+              <div className="bg-gradient-to-br from-purple-50 to-purple-100 rounded-xl p-6 border-2 border-purple-200">
+                <div className="flex items-center justify-between mb-3">
+                  <div className="w-12 h-12 bg-purple-500 rounded-lg flex items-center justify-center">
+                    <TrendingUp className="w-6 h-6 text-white" />
+                  </div>
+                  <span className="text-xs bg-purple-200 text-purple-800 px-2 py-1 rounded-full font-semibold">Monthly</span>
+                </div>
+                <h4 className="text-sm font-semibold text-purple-900 mb-2">Total Revenue</h4>
+                <p className="text-3xl font-bold text-purple-700 mb-1">₹11.0L</p>
+                <p className="text-xs text-purple-600">Closed + Interest</p>
+              </div>
+            </div>
+
+            {/* Monthly Graphs */}
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
+              {/* Loans Given Per Month */}
+              <div className="bg-gray-50 rounded-xl p-6 border border-gray-200">
+                <h3 className="text-lg font-bold text-gray-800 mb-4 flex items-center">
+                  <div className="w-2 h-2 bg-blue-500 rounded-full mr-2"></div>
+                  Monthly Loans Given (in Lakhs)
+                </h3>
+                <div className="space-y-3">
+                  {[
+                    { month: 'Jan', amount: 15.2, percentage: 85 },
+                    { month: 'Feb', amount: 12.8, percentage: 71 },
+                    { month: 'Mar', amount: 18.5, percentage: 100 },
+                    { month: 'Apr', amount: 14.2, percentage: 77 },
+                    { month: 'May', amount: 16.8, percentage: 91 },
+                    { month: 'Jun', amount: 13.5, percentage: 73 },
+                    { month: 'Jul', amount: 17.2, percentage: 93 },
+                    { month: 'Aug', amount: 15.8, percentage: 85 },
+                    { month: 'Sep', amount: 14.5, percentage: 78 },
+                    { month: 'Oct', amount: 16.2, percentage: 88 },
+                    { month: 'Nov', amount: 12.5, percentage: 68 }
+                  ].map((data) => (
+                    <div key={data.month}>
+                      <div className="flex justify-between text-sm mb-1">
+                        <span className="font-semibold text-gray-700">{data.month}</span>
+                        <span className="font-bold text-blue-600">₹{data.amount}L</span>
+                      </div>
+                      <div className="w-full bg-gray-200 rounded-full h-3">
+                        <div 
+                          className="bg-gradient-to-r from-blue-500 to-blue-600 h-3 rounded-full transition-all duration-500"
+                          style={{ width: `${data.percentage}%` }}
+                        ></div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+
+              {/* Interest Collected Per Month */}
+              <div className="bg-gray-50 rounded-xl p-6 border border-gray-200">
+                <h3 className="text-lg font-bold text-gray-800 mb-4 flex items-center">
+                  <div className="w-2 h-2 bg-green-500 rounded-full mr-2"></div>
+                  Monthly Interest Collected (in Lakhs)
+                </h3>
+                <div className="space-y-3">
+                  {[
+                    { month: 'Jan', amount: 3.2, percentage: 89 },
+                    { month: 'Feb', amount: 2.8, percentage: 78 },
+                    { month: 'Mar', amount: 3.6, percentage: 100 },
+                    { month: 'Apr', amount: 2.9, percentage: 81 },
+                    { month: 'May', amount: 3.4, percentage: 94 },
+                    { month: 'Jun', amount: 2.7, percentage: 75 },
+                    { month: 'Jul', amount: 3.5, percentage: 97 },
+                    { month: 'Aug', amount: 3.1, percentage: 86 },
+                    { month: 'Sep', amount: 2.9, percentage: 81 },
+                    { month: 'Oct', amount: 3.3, percentage: 92 },
+                    { month: 'Nov', amount: 2.8, percentage: 78 }
+                  ].map((data) => (
+                    <div key={data.month}>
+                      <div className="flex justify-between text-sm mb-1">
+                        <span className="font-semibold text-gray-700">{data.month}</span>
+                        <span className="font-bold text-green-600">₹{data.amount}L</span>
+                      </div>
+                      <div className="w-full bg-gray-200 rounded-full h-3">
+                        <div 
+                          className="bg-gradient-to-r from-green-500 to-green-600 h-3 rounded-full transition-all duration-500"
+                          style={{ width: `${data.percentage}%` }}
+                        ></div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            </div>
+
+            {/* Bottom Section - Closed Loans & Total Revenue */}
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+              {/* Closed Loan Amount Per Month */}
+              <div className="bg-gray-50 rounded-xl p-6 border border-gray-200">
+                <h3 className="text-lg font-bold text-gray-800 mb-4 flex items-center">
+                  <div className="w-2 h-2 bg-orange-500 rounded-full mr-2"></div>
+                  Monthly Closed Loan Amount (in Lakhs)
+                </h3>
+                <div className="space-y-3">
+                  {[
+                    { month: 'Jan', amount: 10.5, percentage: 88 },
+                    { month: 'Feb', amount: 9.2, percentage: 77 },
+                    { month: 'Mar', amount: 11.8, percentage: 99 },
+                    { month: 'Apr', amount: 8.9, percentage: 75 },
+                    { month: 'May', amount: 10.2, percentage: 86 },
+                    { month: 'Jun', amount: 9.5, percentage: 80 },
+                    { month: 'Jul', amount: 11.2, percentage: 94 },
+                    { month: 'Aug', amount: 10.8, percentage: 91 },
+                    { month: 'Sep', amount: 9.8, percentage: 83 },
+                    { month: 'Oct', amount: 10.5, percentage: 88 },
+                    { month: 'Nov', amount: 8.2, percentage: 69 }
+                  ].map((data) => (
+                    <div key={data.month}>
+                      <div className="flex justify-between text-sm mb-1">
+                        <span className="font-semibold text-gray-700">{data.month}</span>
+                        <span className="font-bold text-orange-600">₹{data.amount}L</span>
+                      </div>
+                      <div className="w-full bg-gray-200 rounded-full h-3">
+                        <div 
+                          className="bg-gradient-to-r from-orange-500 to-orange-600 h-3 rounded-full transition-all duration-500"
+                          style={{ width: `${data.percentage}%` }}
+                        ></div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+
+              {/* Total Revenue (Closed + Interest) */}
+              <div className="bg-gradient-to-br from-purple-50 to-indigo-50 rounded-xl p-6 border-2 border-purple-200">
+                <h3 className="text-lg font-bold text-gray-800 mb-4 flex items-center">
+                  <div className="w-2 h-2 bg-purple-500 rounded-full mr-2"></div>
+                  Total Revenue: Closed + Interest (in Lakhs)
+                </h3>
+                <div className="space-y-3">
+                  {[
+                    { month: 'Jan', closed: 10.5, interest: 3.2, total: 13.7, percentage: 91 },
+                    { month: 'Feb', closed: 9.2, interest: 2.8, total: 12.0, percentage: 80 },
+                    { month: 'Mar', closed: 11.8, interest: 3.6, total: 15.4, percentage: 100 },
+                    { month: 'Apr', closed: 8.9, interest: 2.9, total: 11.8, percentage: 77 },
+                    { month: 'May', closed: 10.2, interest: 3.4, total: 13.6, percentage: 88 },
+                    { month: 'Jun', closed: 9.5, interest: 2.7, total: 12.2, percentage: 79 },
+                    { month: 'Jul', closed: 11.2, interest: 3.5, total: 14.7, percentage: 95 },
+                    { month: 'Aug', closed: 10.8, interest: 3.1, total: 13.9, percentage: 90 },
+                    { month: 'Sep', closed: 9.8, interest: 2.9, total: 12.7, percentage: 82 },
+                    { month: 'Oct', closed: 10.5, interest: 3.3, total: 13.8, percentage: 90 },
+                    { month: 'Nov', closed: 8.2, interest: 2.8, total: 11.0, percentage: 71 }
+                  ].map((data) => (
+                    <div key={data.month}>
+                      <div className="flex justify-between text-sm mb-1">
+                        <span className="font-semibold text-gray-700">{data.month}</span>
+                        <div className="text-right">
+                          <span className="font-bold text-purple-700">₹{data.total}L</span>
+                          <div className="text-xs text-gray-600 mt-0.5">
+                            ₹{data.closed}L + ₹{data.interest}L
+                          </div>
+                        </div>
+                      </div>
+                      <div className="w-full bg-gray-200 rounded-full h-4">
+                        <div className="flex h-4 rounded-full overflow-hidden">
+                          <div 
+                            className="bg-gradient-to-r from-orange-500 to-orange-600 transition-all duration-500"
+                            style={{ width: `${(data.closed / data.total) * data.percentage}%` }}
+                          ></div>
+                          <div 
+                            className="bg-gradient-to-r from-green-500 to-green-600 transition-all duration-500"
+                            style={{ width: `${(data.interest / data.total) * data.percentage}%` }}
+                          ></div>
+                        </div>
+                      </div>
+                      <div className="flex justify-between text-xs text-gray-500 mt-1">
+                        <span>🟠 Closed Amount</span>
+                        <span>🟢 Interest</span>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            </div>
+
+            {/* Summary Footer */}
+            <div className="mt-8 bg-gradient-to-r from-indigo-100 to-purple-100 rounded-xl p-6 border-2 border-indigo-200">
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-6 text-center">
+                <div>
+                  <p className="text-sm text-indigo-700 font-semibold mb-1">Year-to-Date Loans</p>
+                  <p className="text-3xl font-bold text-indigo-900">₹165.2L</p>
+                </div>
+                <div>
+                  <p className="text-sm text-purple-700 font-semibold mb-1">Year-to-Date Interest</p>
+                  <p className="text-3xl font-bold text-purple-900">₹35.4L</p>
+                </div>
+                <div>
+                  <p className="text-sm text-pink-700 font-semibold mb-1">Total Revenue (YTD)</p>
+                  <p className="text-3xl font-bold text-pink-900">₹145.6L</p>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    );
+  };
+
+  return (
+    <div>
+      {currentView === 'login' && <LoginScreen />}
+      {currentView === 'signup' && <SignupScreen />}
+      {currentView === 'forgotPassword' && <ForgotPasswordScreen />}
+      {currentView === 'dashboard' && <DashboardScreen />}
+      {currentView === 'profile' && <ProfileScreen />}
+      {currentView === 'newLoan' && <NewLoanForm />}
+      {currentView === 'redeem' && <RedeemLoanForm />}
+      {currentView === 'auction' && <AuctionListModule />}
+      {currentView === 'analytics' && !isAnalyticsAuthenticated && <AnalyticsAuthScreen />}
+      {currentView === 'analytics' && isAnalyticsAuthenticated && <AnalyticsDashboard />}
+    </div>
+  );
+};
+
+export default GoldLoanManagementSystem;
